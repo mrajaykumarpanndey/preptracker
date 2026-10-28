@@ -45,4 +45,7 @@ export const config = {
   get remindHoursBefore() { return number("REMIND_HOURS_BEFORE", 24); },
   get digestHour() { return number("DIGEST_HOUR", 9); },
   get interviewMinutes() { return number("INTERVIEW_MINUTES", 30); },
+  // Daily study window used by the dashboard timetable (Roadmap assumes ~6 hours/day).
+  get studyStartHour() { return number("STUDY_START_HOUR", 9); },
+  get studyHoursPerDay() { return number("STUDY_HOURS_PER_DAY", 6); },
 };

@@ -2,6 +2,7 @@ import Link from "next/link";
 import FeedbackDetails from "./FeedbackDetails";
 import Nav from "./Nav";
 import StatusSelect from "./StatusSelect";
+import WeekBoard from "./WeekBoard";
 import { REVIEWABLE, STATUS } from "@/lib/constants";
 import { excelPath } from "@/lib/excel";
 import { oauthConfigured, oauthConnected } from "@/lib/google";
@@ -170,6 +171,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <div className="muted small">average interview score</div>
         </div>
       </div>
+
+      <WeekBoard rows={rows} />
 
       <nav className="tabs">
         {(Object.keys(VIEWS) as View[]).map((key) => (
