@@ -338,11 +338,11 @@ td.action { text-align: right; white-space: nowrap; }
 
 .week-scroll { overflow-x: auto; padding: 12px 18px 18px; }
 .week-stage { min-width: 860px; }
-.week-board { --head: 46px; --hour: 46px; display: grid; grid-template-columns: 50px repeat(7, 1fr); }
+.week-board { --head: 46px; --hour: 40px; --span: 17; display: grid; grid-template-columns: 50px repeat(7, 1fr); }
 
 .week-hours { display: flex; flex-direction: column; }
 .week-corner { height: var(--head); }
-.week-hours-track { position: relative; height: calc(var(--hour) * 14); }
+.week-hours-track { position: relative; height: calc(var(--hour) * var(--span)); }
 .week-hours-track span { position: absolute; right: 8px; transform: translateY(-50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 .week-day { display: flex; flex-direction: column; min-width: 0; border-left: 1px solid var(--border); }
@@ -352,7 +352,7 @@ td.action { text-align: right; white-space: nowrap; }
 .week-day.today .week-day-head b { color: var(--accent); }
 .week-day.today .week-col { background: var(--accent-soft); border-radius: 8px; }
 
-.week-col { position: relative; height: calc(var(--hour) * 14); margin: 0 3px; }
+.week-col { position: relative; height: calc(var(--hour) * var(--span)); margin: 0 3px; }
 .week-line { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--border); }
 .week-now { position: absolute; left: -3px; right: -3px; border-top: 2px solid var(--bad); z-index: 3; }
 .week-now::before { content: ""; position: absolute; left: -4px; top: -5px; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
@@ -391,3 +391,11 @@ td.action { text-align: right; white-space: nowrap; }
 .tile.short .tile-title { -webkit-line-clamp: 1; }
 .tile.short .tile-time { display: none; }
 .tile.mid .tile-title { -webkit-line-clamp: 1; }
+.week-office {
+  position: absolute; left: 0; right: 0; z-index: 1; border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  background: repeating-linear-gradient(135deg, var(--surface-2) 0 8px, transparent 8px 16px);
+  border: 1px solid var(--border);
+}
+.week-office span { font-size: 10px; font-weight: 500; }

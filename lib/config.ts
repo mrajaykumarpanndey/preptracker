@@ -45,7 +45,10 @@ export const config = {
   get remindHoursBefore() { return number("REMIND_HOURS_BEFORE", 24); },
   get digestHour() { return number("DIGEST_HOUR", 9); },
   get interviewMinutes() { return number("INTERVIEW_MINUTES", 30); },
-  // Daily study window used by the dashboard timetable (Roadmap assumes ~6 hours/day).
-  get studyStartHour() { return number("STUDY_START_HOUR", 9); },
-  get studyHoursPerDay() { return number("STUDY_HOURS_PER_DAY", 6); },
+  // Working hours: study is planned around them. Days are 0 = Sunday ... 6 = Saturday.
+  get officeDays() {
+    return (process.env.OFFICE_DAYS ?? "1,2,3,4,5").split(",").map((d) => Number(d.trim())).filter((d) => d >= 0 && d <= 6);
+  },
+  get officeStartHour() { return number("OFFICE_START_HOUR", 10); },
+  get officeEndHour() { return number("OFFICE_END_HOUR", 19); },
 };

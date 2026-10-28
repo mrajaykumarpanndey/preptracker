@@ -6,11 +6,34 @@ import { localDay, parseLocal } from "./time";
 // The daily study plan shared by the dashboard board, interview invites and the morning email,
 // so all three show the same sessions at the same times.
 
-export const FIRST_HOUR = 8;
-export const LAST_HOUR = 22;
-const MAX_STUDY_PER_DAY = 8;
-const INTERVIEW_START = 19;
+export const FIRST_HOUR = 6;
+export const LAST_HOUR = 23;
+const MAX_STUDY_PER_DAY = 12;
 const INTERVIEW_LENGTH = 0.5;
+
+type Window = { start: number; end: number };
+export type DaySchedule = { windows: Window[]; interviewStart: number; office?: Window };
+
+const weekdayOf = (day: string) => new Date(`${day}T12:00:00Z`).getUTCDay();
+
+/**
+ * When you can study on a given day. Office days: before work and after work (with an hour to get home),
+ * interviews after the evening session. Free days: 09:00-13:00 and 14:00-18:00, interviews from 19:00.
+ */
+export function daySchedule(day: string): DaySchedule {
+  if (config.officeDays.includes(weekdayOf(day))) {
+    const office = { start: config.officeStartHour, end: config.officeEndHour };
+    const morning = { start: Math.max(FIRST_HOUR + 1, office.start - 3), end: office.start - 0.5 };
+    const evening = { start: office.end + 1, end: Math.min(office.end + 2.5, LAST_HOUR - 1) };
+    return { windows: [morning, evening].filter((w) => w.end - w.start >= 0.5), interviewStart: evening.end, office };
+  }
+  return { windows: [{ start: 9, end: 13 }, { start: 14, end: 18 }], interviewStart: 19 };
+}
+
+/** Study hours available on a day - used to give busier days fewer topics. */
+export function dayCapacity(day: string): number {
+  return daySchedule(day).windows.reduce((sum, w) => sum + (w.end - w.start), 0);
+}
 
 export type Kind = "study" | "retry" | "ahead" | "interview";
 export type Block = { row: number; topic: string; category?: string; kind: Kind; start: number; end: number; note?: string };
@@ -40,7 +63,7 @@ export function interviewStart(rows: Row[], row: Row): Date | null {
   if (!due) return null;
   const day = localDay(due);
   const index = Math.max(0, sameDayInterviews(rows, day).findIndex((r) => r.row === row.row));
-  const hour = Math.min(INTERVIEW_START + index * INTERVIEW_LENGTH, LAST_HOUR - INTERVIEW_LENGTH);
+  const hour = Math.min(daySchedule(day).interviewStart + index * INTERVIEW_LENGTH, LAST_HOUR - INTERVIEW_LENGTH);
   return parseLocal(`${day} ${clock(hour)}`);
 }
 
@@ -72,14 +95,8 @@ export function planDays(rows: Row[], today: string, count: number): PlanDay[] {
     }
   }
 
-  // The study day is a morning and an afternoon session around a one-hour lunch break.
-  const morning = Math.min(3, config.studyHoursPerDay / 2);
-  const windows = [
-    { start: config.studyStartHour, end: config.studyStartHour + morning },
-    { start: config.studyStartHour + morning + 1, end: config.studyStartHour + config.studyHoursPerDay + 1 },
-  ];
-
   return days.map((day) => {
+    const { windows, interviewStart: eveningStart } = daySchedule(day);
     const items = buckets.get(day)!;
     const shown = items.slice(0, MAX_STUDY_PER_DAY);
     const blocks: Block[] = [];
@@ -87,20 +104,22 @@ export function planDays(rows: Row[], today: string, count: number): PlanDay[] {
     const add = (row: Row, start: number, end: number, note: string) =>
       blocks.push({ row: row.row, topic: row.topic, category: row.category, kind: kindOf(row), start, end, note });
 
-    if (shown.length === 1) {
-      // One topic: learn it in the morning, practise it in the afternoon.
+    if (shown.length === 1 && windows.length === 2) {
+      // One topic: learn it in the first session, practise it in the second.
       add(shown[0], windows[0].start, windows[0].end, "Learn");
       add(shown[0], windows[1].start, windows[1].end, "Practice");
-    } else if (shown.length > 1) {
-      // Several topics: share the two sessions evenly.
-      const perWindow = Math.ceil(shown.length / 2);
-      shown.forEach((row, i) => {
-        const half = Math.floor(i / perWindow);
-        const w = windows[half];
-        const inWindow = half === 0 ? perWindow : shown.length - perWindow;
-        const length = (w.end - w.start) / inWindow;
-        const start = w.start + length * (i % perWindow);
-        add(row, start, start + length - (inWindow > 1 ? 0.1 : 0), "Study");
+    } else if (shown.length > 0) {
+      // Several topics: each session gets a share proportional to its length.
+      const total = windows.reduce((sum, w) => sum + (w.end - w.start), 0);
+      let next = 0;
+      windows.forEach((w, wi) => {
+        const remaining = shown.length - next;
+        const count = wi === windows.length - 1 ? remaining : Math.min(remaining, Math.round((shown.length * (w.end - w.start)) / total));
+        const length = (w.end - w.start) / Math.max(count, 1);
+        for (let k = 0; k < count; k++, next++) {
+          const start = w.start + length * k;
+          add(shown[next], start, start + length - (count > 1 ? 0.1 : 0), "Study");
+        }
       });
     }
 
@@ -110,7 +129,7 @@ export function planDays(rows: Row[], today: string, count: number): PlanDay[] {
       ...(day === today ? items.filter((r) => reviewable(r) && localDay(dueDate(r)!) < today) : []), // overdue
     ];
     evening.forEach((row, i) => {
-      const start = INTERVIEW_START + i * INTERVIEW_LENGTH;
+      const start = eveningStart + i * INTERVIEW_LENGTH;
       if (start + INTERVIEW_LENGTH > LAST_HOUR) return;
       blocks.push({ row: row.row, topic: row.topic, category: row.category, kind: "interview", start, end: start + INTERVIEW_LENGTH });
     });

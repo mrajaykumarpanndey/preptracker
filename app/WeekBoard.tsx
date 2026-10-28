@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatLocal, localDay } from "@/lib/time";
-import { clock, FIRST_HOUR, LAST_HOUR, planDays, type Kind } from "@/lib/timetable";
+import { clock, daySchedule, FIRST_HOUR, LAST_HOUR, planDays, type Kind } from "@/lib/timetable";
 import type { Row } from "@/lib/store";
 
 // A week planner: study sessions and mock interviews for the next 7 days. Collapsed by default;
@@ -62,7 +62,12 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
 
       <div className="week-scroll">
         <div className="week-stage">
-          <div className="week-board" role="table" aria-label="Study timetable for the next 7 days">
+          <div
+            className="week-board"
+            role="table"
+            aria-label="Study timetable for the next 7 days"
+            style={{ ["--span" as string]: LAST_HOUR - FIRST_HOUR }}
+          >
             <div className="week-hours" aria-hidden>
               <div className="week-corner" />
               <div className="week-hours-track">
@@ -84,6 +89,20 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
                   {hours.map((h) => (
                     <i key={h} className="week-line" style={{ top: pct(h) }} aria-hidden />
                   ))}
+                  {(() => {
+                    const office = daySchedule(d.day).office;
+                    return office ? (
+                      <div
+                        className="week-office"
+                        style={{ top: pct(office.start), height: `calc(${pct(office.end)} - ${pct(office.start)})` }}
+                      >
+                        Office
+                        <span>
+                          {clock(office.start)}-{clock(office.end)}
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
                   {d.isToday && nowHour >= FIRST_HOUR && nowHour <= LAST_HOUR && (
                     <div className="week-now" style={{ top: pct(nowHour) }} aria-label={`Now, ${clock(nowHour)}`} />
                   )}
@@ -101,7 +120,7 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
                       <span className="tile-title">
                         <span className="tile-note">{b.kind === "interview" ? "Interview" : b.note}</span> {b.topic}
                       </span>
-                      {b.end - b.start >= 1.5 && b.category && <span className="tile-sub">{b.category}</span>}
+                      {b.end - b.start >= 2 && b.category && <span className="tile-sub">{b.category}</span>}
                     </Link>
                   ))}
                   {d.more > 0 && <span className="week-more">+{d.more} more due</span>}

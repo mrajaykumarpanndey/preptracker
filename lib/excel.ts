@@ -4,6 +4,7 @@ import path from "node:path";
 import { STATUS } from "./constants";
 import type { Field, HistoryEntry, Row, RowUpdate } from "./sheets";
 import { localDay } from "./time";
+import { clock, dayCapacity, daySchedule } from "./timetable";
 
 // Works with the ML_Learning_Tracker.xlsx layout:
 //   Roadmap!B2 = start date, rows 7+ = phases (A code, B focus, C planned weeks)
@@ -14,7 +15,6 @@ const TOPICS = "Topic Tracker";
 const ROADMAP = "Roadmap";
 const HISTORY = "Interview History";
 const WEEKLY_LOG = "Weekly Log";
-const DUE_TIME = "19:00";
 const STATUS_LIST = [STATUS.NOT_STARTED, STATUS.IN_PROGRESS, STATUS.READY, STATUS.NEEDS_WORK, STATUS.DONE];
 
 const EXTRA_COLUMNS = [
@@ -107,11 +107,18 @@ function parseRows(wb: ExcelJS.Workbook): Row[] {
     seen.set(phase, index + 1);
 
     // Spread a phase's topics evenly across its weeks, in sheet order. Column J overrides.
+    // Spread a phase's topics across its days in sheet order, giving each day a share proportional to the
+    // study hours it has (office days have fewer). Due at that day's interview time. Column J overrides.
     let planned = cell("J");
     const window = windows.get(phase);
     if (!planned && window) {
-      const offset = Math.max(0, Math.ceil(((index + 1) * window.days) / perPhase.get(phase)!) - 1);
-      planned = `${addDays(window.start, offset)} ${DUE_TIME}`;
+      const caps = Array.from({ length: window.days }, (_, d) => dayCapacity(addDays(window.start, d)));
+      const total = caps.reduce((a, b) => a + b, 0);
+      const target = ((index + 1) / perPhase.get(phase)!) * total;
+      let offset = 0;
+      for (let sum = caps[0]; sum < target - 1e-9 && offset < caps.length - 1; sum += caps[++offset]);
+      const day = addDays(window.start, offset);
+      planned = `${day} ${clock(daySchedule(day).interviewStart)}`;
     }
 
     return {
