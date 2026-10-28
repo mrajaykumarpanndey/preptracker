@@ -4,6 +4,15 @@ import { config } from "./config";
 let transport: Transporter | undefined;
 
 export async function sendMail(opts: { subject: string; html: string; ics?: string }): Promise<void> {
+  // Preview mode for development: write the email to a file instead of sending it.
+  const previewDir = process.env.MAIL_PREVIEW_DIR;
+  if (previewDir) {
+    const { mkdirSync, writeFileSync } = await import("node:fs");
+    mkdirSync(previewDir, { recursive: true });
+    const name = `${Date.now()}-${opts.subject.replace(/[^a-z0-9]+/gi, "-").slice(0, 60)}.html`;
+    writeFileSync(`${previewDir}/${name}`, opts.html);
+    return;
+  }
   transport ??= nodemailer.createTransport(config.smtp);
   await transport.sendMail({
     from: config.mailFrom,
@@ -52,6 +61,3 @@ export function buildInvite(opts: {
     "END:VCALENDAR",
   ].join("\r\n");
 }
-
-export const escapeHtml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

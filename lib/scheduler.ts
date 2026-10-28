@@ -2,7 +2,8 @@ import { createEvent, deleteEvent } from "./calendar";
 import { config } from "./config";
 import { REVIEWABLE, STATUS } from "./constants";
 import { oauthConnected } from "./google";
-import { buildInvite, escapeHtml, sendMail } from "./mail";
+import { esc, heading, list, p, progressBar, renderEmail, schedule } from "./emailTemplate";
+import { buildInvite, sendMail } from "./mail";
 import { listRows, updateRows, type Row, type RowUpdate } from "./store";
 import { formatLocal, localDay, localHour } from "./time";
 import { clock, currentStudyDay, dueDate, interviewStart, planDays, type Kind } from "./timetable";
@@ -36,13 +37,24 @@ export async function sendInvite(row: Row, start: Date, dueKey: string): Promise
     eventId = await createEvent(event);
   }
 
+  const when = formatLocal(start);
+  const points = row.keyPoints.split("\n").filter(Boolean).map((line) => esc(line));
   await sendMail({
-    subject: `Interview scheduled: ${row.topic} at ${formatLocal(start)}`,
-    html: `<p>Your mock interview on <b>${escapeHtml(row.topic)}</b> is scheduled for <b>${formatLocal(start)}</b>${
-      eventId ? " and has been added to your Google Calendar" : ""
-    }.</p>
-<p><a href="${url}">Start the interview</a> when you're ready.</p>
-${row.keyPoints ? `<p>Revise these points first:<br>${escapeHtml(row.keyPoints).replace(/\n/g, "<br>")}</p>` : ""}`,
+    subject: `Mock interview: ${row.topic} at ${when.slice(11)} on ${when.slice(0, 10)}`,
+    html: renderEmail({
+      preheader: `Your ${config.interviewMinutes}-minute mock interview on ${row.topic} is booked for ${when}.`,
+      title: `Your mock interview on ${row.topic}`,
+      body: [
+        p(
+          `It's booked for <b>${esc(when)}</b> (${config.interviewMinutes} minutes)${
+            eventId ? " and is in your Google Calendar" : ". Accept the attached invite to add it to your calendar"
+          }.`,
+        ),
+        p("The AI interviewer asks one question at a time and follows up on vague answers. Answer as you would in a real interview - your score goes straight into your tracker."),
+        points.length ? heading("Revise before you start") + list(points) : "",
+      ].join(""),
+      cta: { label: "Start the interview", url },
+    }),
     ics: eventId ? undefined : buildInvite({ uid: `prep-${row.row}-${start.getTime()}@prep-tracker`, ...event }),
   });
   return eventId ? `${dueKey}|${eventId}` : dueKey;
@@ -59,50 +71,57 @@ const SESSION: Record<Kind, { label: string; color: string }> = {
   interview: { label: "Mock interview", color: "#c4511f" },
 };
 
-/** Today's sessions as an email-friendly table - the same plan the dashboard board shows. */
+/** Today's sessions - the same plan the dashboard board shows. */
 function timetableHtml(rows: Row[], today: string): string {
   const [plan] = planDays(rows, today, 1);
   if (plan.blocks.length === 0) return "";
-  const cells = [...plan.blocks]
-    .sort((a, b) => a.start - b.start)
-    .map((b) => {
-      const kind = SESSION[b.kind];
-      const note = b.kind === "interview" ? "" : b.note ? `${b.note}: ` : "";
-      return `<tr>
-<td style="padding:6px 10px;white-space:nowrap;font-variant-numeric:tabular-nums;color:#555">${clock(b.start)}-${clock(b.end)}</td>
-<td style="padding:6px 10px;border-left:4px solid ${kind.color}"><b>${note}${escapeHtml(b.topic)}</b>${
-        b.category ? ` <span style="color:#888">(${escapeHtml(b.category)})</span>` : ""
-      }<br><span style="font-size:12px;color:${kind.color}">${kind.label}</span> &middot; <a href="${config.appUrl}/interview/${b.row}">open</a></td>
-</tr>`;
-    })
-    .join("");
-  const more = plan.more > 0 ? `<p style="color:#888">+${plan.more} more topics due today - see the tracker.</p>` : "";
-  return `<h3 style="margin:18px 0 6px">Today's timetable</h3>
-<table style="border-collapse:collapse;font-size:14px">${cells}</table>${more}`;
+  const rowsHtml = schedule(
+    [...plan.blocks]
+      .sort((a, b) => a.start - b.start)
+      .map((b) => ({
+        time: `${clock(b.start)}-${clock(b.end)}`,
+        color: SESSION[b.kind].color,
+        title: b.kind === "interview" || !b.note ? b.topic : `${b.note}: ${b.topic}`,
+        subtitle: [SESSION[b.kind].label, b.category].filter(Boolean).join(" · "),
+        href: `${config.appUrl}/interview/${b.row}`,
+      })),
+  );
+  const more = plan.more > 0 ? p(`<span style="color:#8a8f98">+${plan.more} more topics due today - see the tracker.</span>`) : "";
+  return heading("Today's timetable") + rowsHtml + more;
 }
 
-async function sendDigest(items: DigestItem[], rows: Row[]): Promise<void> {
+async function sendDigest(items: DigestItem[], rows: Row[], now: Date): Promise<void> {
   const line = ({ row, due, overdue }: DigestItem) => {
     const status = row.status || STATUS.NOT_STARTED;
     const action = REVIEWABLE.includes(status)
-      ? `<a href="${interviewUrl(row)}">take the interview</a>`
-      : `update the status to "${STATUS.IN_PROGRESS}" or "${STATUS.READY}" once you start`;
-    const category = row.category ? ` <span style="color:#888">(${escapeHtml(row.category)})</span>` : "";
-    return `<li><b>${escapeHtml(row.topic)}</b>${category} - ${escapeHtml(status)}, ${overdue ? "<b>overdue</b> since" : "due"} ${formatLocal(due)}${
-      row.score ? `, last score ${escapeHtml(row.score)}/10` : ""
-    }<br>Next step: ${action}</li>`;
+      ? `<a href="${interviewUrl(row)}" style="color:#2a63d6">take the interview</a>`
+      : `set it to "${STATUS.IN_PROGRESS}" when you start`;
+    const category = row.category ? ` <span style="color:#8a8f98">(${esc(row.category)})</span>` : "";
+    return `<b>${esc(row.topic)}</b>${category}<br><span style="font-size:14px">${overdue ? '<b style="color:#c53030">Overdue</b> since' : "Due"} ${esc(
+      formatLocal(due),
+    )}${row.score ? ` · last score ${esc(row.score)}/10` : ""} · ${action}</span>`;
   };
   const overdue = items.filter((i) => i.overdue).length;
   const done = rows.filter((r) => r.status === STATUS.DONE).length;
   const sorted = [...items].sort((a, b) => a.due.getTime() - b.due.getTime());
   const more = sorted.length - DIGEST_LIMIT;
+  const studyDay = currentStudyDay(now).day;
+  const sessions = planDays(rows, studyDay, 1)[0].blocks.filter((b) => b.kind !== "interview").length;
+
   await sendMail({
-    subject: `Prep check-in: ${items.length} topic(s) need attention${overdue ? `, ${overdue} overdue` : ""}`,
-    html: `<p>Progress: <b>${done} of ${rows.length}</b> topics done (${Math.round((done / Math.max(rows.length, 1)) * 100)}%).</p>
-${timetableHtml(rows, currentStudyDay().day)}
-<h3 style="margin:18px 0 6px">Due and overdue</h3><ul>${sorted.slice(0, DIGEST_LIMIT).map(line).join("")}</ul>
-${more > 0 ? `<p>...and ${more} more.</p>` : ""}
-<p><a href="${config.appUrl}">Open your tracker</a></p>`,
+    subject: `Today's plan: ${sessions} session${sessions === 1 ? "" : "s"}${overdue ? `, ${overdue} overdue` : ""}`,
+    html: renderEmail({
+      preheader: `${sessions} study sessions today. ${done} of ${rows.length} topics done so far.`,
+      title: overdue ? `${overdue} topic${overdue === 1 ? "" : "s"} to catch up on - you've got this` : "Here's your plan for today",
+      body: [
+        progressBar(done, rows.length),
+        timetableHtml(rows, studyDay),
+        heading("Due and overdue"),
+        list(sorted.slice(0, DIGEST_LIMIT).map(line)),
+        more > 0 ? p(`<span style="color:#8a8f98">...and ${more} more in your tracker.</span>`) : "",
+      ].join(""),
+      cta: { label: "Open today's timetable", url: config.appUrl },
+    }),
   });
 }
 
@@ -141,7 +160,7 @@ export async function runScheduler(now = new Date()) {
 
   const sendDigestNow = digest.length > 0 && localHour(now) >= config.digestHour;
   if (sendDigestNow) {
-    await sendDigest(digest, rows);
+    await sendDigest(digest, rows, now);
     for (const { row } of digest) {
       const existing = updates.find((u) => u.row === row.row);
       if (existing) existing.fields.lastReminder = today;

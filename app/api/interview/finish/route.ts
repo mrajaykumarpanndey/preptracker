@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { evaluateInterview } from "@/lib/claude";
 import { config } from "@/lib/config";
 import { STATUS, type ChatTurn } from "@/lib/constants";
-import { escapeHtml, sendMail } from "@/lib/mail";
+import { esc, heading, list, p, renderEmail } from "@/lib/emailTemplate";
+import { sendMail } from "@/lib/mail";
 import { appendHistory, getRow, updateRow } from "@/lib/store";
 import { formatLocal, localDay, parseLocal } from "@/lib/time";
 
@@ -44,12 +45,25 @@ export async function POST(req: Request) {
     ]);
 
     await sendMail({
-      subject: `${row.topic}: scored ${result.score}/10 - ${status}`,
-      html: `<p><b>${escapeHtml(result.verdict)}</b></p>
-<p>Strengths:</p><ul>${result.strengths.map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ul>
-<p>Revise:</p><ul>${result.gaps.map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ul>
-<p>${escapeHtml(result.feedback)}</p>
-${passed ? "<p>Marked as Done.</p>" : `<p>Marked as Needs Modification. Next interview: <b>${nextReview}</b>.</p>`}`,
+      subject: `${row.topic}: ${result.score}/10 - ${passed ? "passed" : "needs another round"}`,
+      html: renderEmail({
+        preheader: result.verdict,
+        title: passed ? `You passed ${row.topic} with ${result.score}/10` : `${row.topic}: ${result.score}/10 - one more round`,
+        body: [
+          p(`<b>${esc(result.verdict)}</b>`),
+          result.strengths.length ? heading("What went well") + list(result.strengths.map(esc)) : "",
+          result.gaps.length ? heading("Revise these") + list(result.gaps.map(esc)) : "",
+          heading("Advice"),
+          p(esc(result.feedback)),
+          p(
+            passed
+              ? "This topic is now marked <b>Done</b> in your tracker."
+              : `It's marked <b>Needs Modification</b>. Your retry is booked for <b>${esc(nextReview)}</b>.`,
+          ),
+        ].join(""),
+        cta: passed ? { label: "See your progress", url: `${config.appUrl}/insights` } : { label: "Practise again", url: `${config.appUrl}/interview/${row.row}` },
+        ctaColor: passed ? "#1f8a4c" : undefined,
+      }),
     }).catch((error) => console.error("Result email failed", error));
 
     return NextResponse.json({ ...result, status, nextReview });
