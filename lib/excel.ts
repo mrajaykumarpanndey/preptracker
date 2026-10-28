@@ -313,6 +313,7 @@ function prepare(wb: ExcelJS.Workbook): void {
       { header: "Verdict", width: 40 },
       { header: "Feedback", width: 60 },
       { header: "Transcript", width: 80 },
+      { header: "Focused minutes", width: 10 },
     ];
     history.getRow(1).eachCell((cell) => (cell.style = structuredClone(ws.getCell("I1").style)));
     history.views = [{ state: "frozen", ySplit: 1 }];
@@ -430,7 +431,15 @@ export function appendExcelHistory(values: string[]): Promise<void> {
   return exclusive(async () => {
     const wb = await load();
     prepare(wb);
-    const row = wb.getWorksheet(HISTORY)!.addRow(values.map((v, i) => (i === 2 && v !== "" ? Number(v) : v)));
+    const history = wb.getWorksheet(HISTORY)!;
+    if (!text(history.getCell("G1").value)) {
+      // Older history sheets predate the focus timer.
+      history.getCell("G1").value = "Focused minutes";
+      history.getCell("G1").style = structuredClone(history.getCell("F1").style);
+      history.getColumn(7).width = 10;
+    }
+    const numeric = new Set([2, 6]); // Score, Focused minutes
+    const row = history.addRow(values.map((v, i) => (numeric.has(i) && v !== "" ? Number(v) : v)));
     row.alignment = { wrapText: true, vertical: "top" };
     await save(wb);
   });

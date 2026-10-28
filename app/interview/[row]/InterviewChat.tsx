@@ -5,6 +5,7 @@ import { END_MARKER, STATUS, type ChatTurn } from "@/lib/constants";
 import Markdown from "./Markdown";
 
 type Result = {
+  focusedSeconds: number;
   score: number;
   verdict: string;
   strengths: string[];
@@ -16,6 +17,43 @@ type Result = {
 
 // The interviewer is asked for roughly 6-8 questions; used only for the progress bar.
 const EXPECTED_QUESTIONS = 7;
+
+const duration = (seconds: number) => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  const mmss = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return h ? `${h}:${mmss}` : mmss;
+};
+
+/**
+ * Seconds this page has had your attention: counts only while the tab is visible and the window focused.
+ * Stops for good once `stopped` is true.
+ */
+function useFocusTimer(stopped: boolean) {
+  const [seconds, setSeconds] = useState(0);
+  const [focused, setFocused] = useState(true);
+  useEffect(() => {
+    if (stopped) return;
+    const tick = () => {
+      const active = document.visibilityState === "visible" && document.hasFocus();
+      setFocused(active);
+      if (active) setSeconds((s) => s + 1);
+    };
+    const id = setInterval(tick, 1000);
+    const update = () => setFocused(document.visibilityState === "visible" && document.hasFocus());
+    window.addEventListener("focus", update);
+    window.addEventListener("blur", update);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", update);
+      window.removeEventListener("blur", update);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, [stopped]);
+  return { seconds, focused: focused && !stopped };
+}
 
 async function post<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -71,6 +109,9 @@ function ResultCard({ result }: { result: Result }) {
         )}
       </div>
       <p className="advice">{result.feedback}</p>
+      <p className="muted small" style={{ marginBottom: 16 }}>
+        Focused time: <b>{duration(result.focusedSeconds)}</b>
+      </p>
       <a href="/" className="button-link">
         Back to tracker
       </a>
@@ -86,6 +127,10 @@ export default function InterviewChat({ row }: { row: number }) {
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const started = useRef(false);
+  const timer = useFocusTimer(result !== null);
+  const questionStartedAt = useRef(0); // focused seconds when the latest question arrived
+  const timerRef = useRef(0);
+  timerRef.current = timer.seconds;
   const bottom = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
@@ -99,6 +144,7 @@ export default function InterviewChat({ row }: { row: number }) {
     try {
       const { reply } = await post<{ reply: string }>("/api/interview", { row, turns: history });
       setTurns([...history, { role: "assistant", content: reply }]);
+      questionStartedAt.current = timerRef.current;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -140,7 +186,9 @@ export default function InterviewChat({ row }: { row: number }) {
     setScoring(true);
     setError("");
     try {
-      setResult(await post<Result>("/api/interview/finish", { row, turns }));
+      const focusedSeconds = timerRef.current;
+      const scored = await post<Omit<Result, "focusedSeconds">>("/api/interview/finish", { row, turns, focusedSeconds });
+      setResult({ ...scored, focusedSeconds });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -154,9 +202,23 @@ export default function InterviewChat({ row }: { row: number }) {
       <div className="progress" aria-label="Interview progress">
         <div className="progress-bar" style={{ width: `${progress}%` }} />
       </div>
-      <p className="muted small progress-label">
-        {result ? "Interview complete" : finished ? "Interview finished - get your score" : `${answered} answered`}
-      </p>
+      <div className="progress-row">
+        <p className="muted small progress-label">
+          {result ? "Interview complete" : finished ? "Interview finished - get your score" : `${answered} answered`}
+        </p>
+        <div className={`focus-timer ${timer.focused ? "" : "paused"}`} title="Counts only while this tab is open and focused">
+          <span className="focus-dot" aria-hidden />
+          <b>{duration(timer.seconds)}</b>
+          <span className="muted">focused</span>
+          {!result && (
+            <span className="muted">
+              {" "}
+              · this question {duration(Math.max(0, timer.seconds - questionStartedAt.current))}
+            </span>
+          )}
+          {!timer.focused && !result && <span className="paused-badge">Paused</span>}
+        </div>
+      </div>
 
       <div className="chat">
         {turns.map((turn, i) => (

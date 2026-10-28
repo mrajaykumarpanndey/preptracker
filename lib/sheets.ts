@@ -49,7 +49,7 @@ export const HEADERS = [
   "Last Reminder",
 ];
 
-const HISTORY_HEADERS = ["Date", "Topic", "Score", "Verdict", "Feedback", "Transcript"];
+const HISTORY_HEADERS = ["Date", "Topic", "Score", "Verdict", "Feedback", "Transcript", "Focused minutes"];
 
 function call<T>(path: string, method: "GET" | "POST" | "PUT" = "GET", data?: unknown): Promise<T> {
   return googleRequest<T>(`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}${path}`, method, data);
@@ -92,7 +92,7 @@ export async function appendHistory(values: string[]): Promise<void> {
   // A cell holds at most 50,000 characters.
   const safe = values.map((v) => v.slice(0, 49_000));
   await call(
-    `/values/${range(`${config.historyTab}!A:F`)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+    `/values/${range(`${config.historyTab}!A:G`)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     "POST",
     { values: [safe] },
   );
@@ -119,7 +119,7 @@ export async function setupSheet(): Promise<void> {
 
   const tabs = [
     { range: `${config.tab}!A1:I1`, values: [HEADERS] },
-    { range: `${config.historyTab}!A1:F1`, values: [HISTORY_HEADERS] },
+    { range: `${config.historyTab}!A1:G1`, values: [HISTORY_HEADERS] },
   ];
   const current = await call<{ valueRanges: { values?: string[][] }[] }>(
     `/values:batchGet?${tabs.map((t) => `ranges=${range(t.range)}`).join("&")}`,
@@ -150,7 +150,7 @@ export async function createTrackerSheet(exampleDue: string): Promise<{ id: stri
           ],
         ],
       },
-      { range: `${config.historyTab}!A1:F1`, values: [HISTORY_HEADERS] },
+      { range: `${config.historyTab}!A1:G1`, values: [HISTORY_HEADERS] },
     ],
   });
   return { id: sheet.spreadsheetId, title };

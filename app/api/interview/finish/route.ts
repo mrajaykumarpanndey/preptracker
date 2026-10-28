@@ -11,7 +11,12 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 export async function POST(req: Request) {
-  const { row: rowNumber, turns } = (await req.json()) as { row: number; turns: ChatTurn[] };
+  const { row: rowNumber, turns, focusedSeconds = 0 } = (await req.json()) as {
+    row: number;
+    turns: ChatTurn[];
+    focusedSeconds?: number;
+  };
+  const focusedMinutes = Math.round((Math.max(0, Number(focusedSeconds) || 0) / 60) * 10) / 10;
   const row = await getRow(rowNumber);
   if (!row) return NextResponse.json({ error: "Topic not found in the sheet" }, { status: 404 });
   if (!turns.some((t) => t.role === "user")) {
@@ -42,6 +47,7 @@ export async function POST(req: Request) {
       result.verdict,
       feedback,
       turns.map((t) => `${t.role === "assistant" ? "Q" : "A"}: ${t.content}`).join("\n\n"),
+      String(focusedMinutes),
     ]);
 
     await sendMail({
@@ -55,6 +61,7 @@ export async function POST(req: Request) {
           result.gaps.length ? heading("Revise these") + list(result.gaps.map(esc)) : "",
           heading("Advice"),
           p(esc(result.feedback)),
+          p(`Focused time: <b>${focusedMinutes} min</b> across ${turns.filter((t) => t.role === "user").length} answers.`),
           p(
             passed
               ? "This topic is now marked <b>Done</b> in your tracker."
