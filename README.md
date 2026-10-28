@@ -98,3 +98,21 @@ Set `APP_PASSWORD` to put a login prompt on the site (any username, that passwor
 | `REMIND_HOURS_BEFORE` | `24` | How close to the deadline a topic enters the daily reminder |
 | `DIGEST_HOUR` | `9` | Earliest hour (local) for the daily reminder email |
 | `INTERVIEW_MINUTES` | `30` | Length of the calendar event |
+
+## Production (Azure VM)
+
+Live at **https://preptracker.52.172.90.237.sslip.io** (browser login: any username + `APP_PASSWORD`).
+
+- VM `ema-scanner-vm` (resource group `EMA-SCANNER-RG`), user `azureuser`, shared with other apps behind the
+  `ema-scanner-caddy` container. This app's Caddy site is `/opt/caddy-sites/preptracker.caddy`.
+- Container `preptracker` on `172.18.0.1:8200`, settings in `~/preptracker/.env`, data (Excel file, backups,
+  settings) in `~/preptracker/data` mounted at `/app/data`. The scheduler runs inside the container every 15 minutes,
+  so don't also run `npm run local-cron` against the same Excel file.
+
+Update to the latest code:
+```bash
+ssh azureuser@52.172.90.237
+cd ~/preptracker/app && git pull && sudo docker build -t preptracker:latest .
+sudo docker rm -f preptracker && sudo docker run -d --name preptracker --restart unless-stopped \
+  -p 172.18.0.1:8200:3000 --env-file ~/preptracker/.env -v ~/preptracker/data:/app/data preptracker:latest
+```
