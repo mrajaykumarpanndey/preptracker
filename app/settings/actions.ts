@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { replaceExcel } from "@/lib/excel";
+import { replaceExcel, setPlanWindow } from "@/lib/excel";
 import { saveSettings } from "@/lib/settings";
 import { createTrackerSheet, inspectSheet, setupSheet } from "@/lib/sheets";
 import { formatLocal } from "@/lib/time";
@@ -60,4 +60,22 @@ export async function uploadExcel(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/insights");
   redirect(`/settings?ok=${encodeURIComponent(`Uploaded - ${topics} topics loaded. The previous file was backed up.`)}`);
+}
+
+export async function reschedule(formData: FormData) {
+  const start = String(formData.get("start") ?? "");
+  const end = String(formData.get("end") ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || end < start) {
+    fail("Pick a start date and a finish date on or after it.");
+  }
+  let summary = "";
+  try {
+    const phases = await setPlanWindow(start, end);
+    summary = phases.map((p) => `${p.code} ${p.days}d`).join(", ");
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+  revalidatePath("/");
+  revalidatePath("/insights");
+  redirect(`/settings?ok=${encodeURIComponent(`Plan now runs ${start} to ${end}: ${summary}.`)}`);
 }

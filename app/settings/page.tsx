@@ -3,7 +3,8 @@ import { excelExists, excelPath } from "@/lib/excel";
 import { oauthConfigured, oauthConnected } from "@/lib/google";
 import { dataSource } from "@/lib/store";
 import { readSettings } from "@/lib/settings";
-import { connectSheet, createSheet, uploadExcel } from "./actions";
+import { connectSheet, createSheet, reschedule, uploadExcel } from "./actions";
+import { localDay } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,22 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             file, edit it in Excel and upload it here. Uploading replaces the server copy; the previous one is kept as a
             backup. Download a fresh copy first so you don&apos;t lose scores recorded since your last download.
           </p>
+          <form action={reschedule} className="stack">
+            <h2>Finish by</h2>
+            <p className="muted small">
+              Re-plans the Roadmap so every scheduled phase fits between these dates. Days are shared in proportion to each
+              phase&apos;s number of topics; phases set to 0 weeks stay unscheduled.
+            </p>
+            <div className="upload-form">
+              <label className="small muted">
+                Start <input type="date" name="start" defaultValue={localDay(new Date())} required />
+              </label>
+              <label className="small muted">
+                Finish <input type="date" name="end" required />
+              </label>
+              <button type="submit">Re-plan</button>
+            </div>
+          </form>
           <div className="actions" style={{ marginLeft: 0 }}>
             <a href="/api/excel" className="button-link">
               Download Excel

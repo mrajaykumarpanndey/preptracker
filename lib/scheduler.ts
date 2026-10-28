@@ -4,13 +4,12 @@ import { REVIEWABLE, STATUS } from "./constants";
 import { oauthConnected } from "./google";
 import { buildInvite, escapeHtml, sendMail } from "./mail";
 import { listRows, updateRows, type Row, type RowUpdate } from "./store";
-import { formatLocal, localDay, localHour, parseLocal } from "./time";
+import { formatLocal, localDay, localHour } from "./time";
+import { clock, dueDate, interviewStart, planDays, type Kind } from "./timetable";
+
+export { dueDate };
 
 const HOUR = 3_600_000;
-
-export function dueDate(row: Row): Date | null {
-  return parseLocal(row.nextReview) ?? parseLocal(row.planned);
-}
 
 export function interviewUrl(row: Row): string {
   return `${config.appUrl}/interview/${row.row}`;
@@ -53,6 +52,35 @@ type DigestItem = { row: Row; due: Date; overdue: boolean };
 
 const DIGEST_LIMIT = 15;
 
+const SESSION: Record<Kind, { label: string; color: string }> = {
+  study: { label: "Study", color: "#2a78d6" },
+  retry: { label: "Revise & retry", color: "#c53030" },
+  ahead: { label: "Get ahead", color: "#1c4f9c" },
+  interview: { label: "Mock interview", color: "#c4511f" },
+};
+
+/** Today's sessions as an email-friendly table - the same plan the dashboard board shows. */
+function timetableHtml(rows: Row[], today: string): string {
+  const [plan] = planDays(rows, today, 1);
+  if (plan.blocks.length === 0) return "";
+  const cells = [...plan.blocks]
+    .sort((a, b) => a.start - b.start)
+    .map((b) => {
+      const kind = SESSION[b.kind];
+      const note = b.kind === "interview" ? "" : b.note ? `${b.note}: ` : "";
+      return `<tr>
+<td style="padding:6px 10px;white-space:nowrap;font-variant-numeric:tabular-nums;color:#555">${clock(b.start)}-${clock(b.end)}</td>
+<td style="padding:6px 10px;border-left:4px solid ${kind.color}"><b>${note}${escapeHtml(b.topic)}</b>${
+        b.category ? ` <span style="color:#888">(${escapeHtml(b.category)})</span>` : ""
+      }<br><span style="font-size:12px;color:${kind.color}">${kind.label}</span> &middot; <a href="${config.appUrl}/interview/${b.row}">open</a></td>
+</tr>`;
+    })
+    .join("");
+  const more = plan.more > 0 ? `<p style="color:#888">+${plan.more} more topics due today - see the tracker.</p>` : "";
+  return `<h3 style="margin:18px 0 6px">Today's timetable</h3>
+<table style="border-collapse:collapse;font-size:14px">${cells}</table>${more}`;
+}
+
 async function sendDigest(items: DigestItem[], rows: Row[]): Promise<void> {
   const line = ({ row, due, overdue }: DigestItem) => {
     const status = row.status || STATUS.NOT_STARTED;
@@ -71,7 +99,8 @@ async function sendDigest(items: DigestItem[], rows: Row[]): Promise<void> {
   await sendMail({
     subject: `Prep check-in: ${items.length} topic(s) need attention${overdue ? `, ${overdue} overdue` : ""}`,
     html: `<p>Progress: <b>${done} of ${rows.length}</b> topics done (${Math.round((done / Math.max(rows.length, 1)) * 100)}%).</p>
-<p>Here's what you need to work on:</p><ul>${sorted.slice(0, DIGEST_LIMIT).map(line).join("")}</ul>
+${timetableHtml(rows, localDay(new Date()))}
+<h3 style="margin:18px 0 6px">Due and overdue</h3><ul>${sorted.slice(0, DIGEST_LIMIT).map(line).join("")}</ul>
 ${more > 0 ? `<p>...and ${more} more.</p>` : ""}
 <p><a href="${config.appUrl}">Open your tracker</a></p>`,
   });
@@ -93,13 +122,15 @@ export async function runScheduler(now = new Date()) {
     const dueKey = formatLocal(due);
 
     // The invite is keyed by the due time, so moving the date in the sheet sends a fresh invite.
+    // It's booked at the topic's evening slot from the timetable (19:00, 19:30, ...).
     if (
       REVIEWABLE.includes(row.status) &&
       hoursLeft <= config.inviteHoursBefore &&
       hoursLeft > -12 &&
       row.inviteSentFor.split("|")[0] !== dueKey
     ) {
-      updates.push({ row: row.row, fields: { inviteSentFor: await sendInvite(row, due, dueKey) } });
+      const start = interviewStart(rows, row) ?? due;
+      updates.push({ row: row.row, fields: { inviteSentFor: await sendInvite(row, start, dueKey) } });
       invited.push(row.topic);
     }
 

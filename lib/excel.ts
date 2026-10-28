@@ -312,6 +312,58 @@ function prepare(wb: ExcelJS.Workbook): void {
   }
 }
 
+export type PhasePlan = { code: string; topics: number; days: number; start: string; end: string };
+
+/**
+ * Re-plans the Roadmap so every scheduled phase (Planned Weeks > 0) fits between `start` and `end`
+ * (inclusive). Days are shared in proportion to each phase's topic count; phases set to 0 weeks stay unscheduled.
+ */
+export function setPlanWindow(start: string, end: string): Promise<PhasePlan[]> {
+  return exclusive(async () => {
+    const totalDays = Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86_400_000) + 1;
+    const wb = await load();
+    prepare(wb);
+    const roadmap = wb.getWorksheet(ROADMAP);
+    if (!roadmap) throw new Error(`The workbook has no "${ROADMAP}" sheet`);
+
+    const counts = new Map<string, number>();
+    for (const row of parseRows(wb)) counts.set(row.phase ?? "", (counts.get(row.phase ?? "") ?? 0) + 1);
+    const phases: { r: number; code: string; topics: number }[] = [];
+    for (let r = 7; r <= roadmap.rowCount; r++) {
+      const code = text(roadmap.getCell(`A${r}`).value);
+      if (!/^P\d/.test(code)) break;
+      if ((Number(text(roadmap.getCell(`C${r}`).value)) || 0) > 0) phases.push({ r, code, topics: counts.get(code) ?? 0 });
+    }
+    if (!phases.length) throw new Error("No phase has Planned Weeks above 0 on the Roadmap.");
+    if (totalDays < phases.length) throw new Error(`Need at least ${phases.length} days, one per phase.`);
+
+    // Largest-remainder split, at least one day per phase.
+    const allTopics = phases.reduce((n, p) => n + p.topics, 0) || phases.length;
+    const exact = phases.map((p) => (Math.max(p.topics, 1) / allTopics) * totalDays);
+    const days = exact.map((d) => Math.max(1, Math.floor(d)));
+    let left = totalDays - days.reduce((a, b) => a + b, 0);
+    const order = exact.map((d, i) => ({ i, rest: d - Math.floor(d) })).sort((a, b) => b.rest - a.rest);
+    for (let k = 0; left > 0; k = (k + 1) % order.length, left--) days[order[k].i]++;
+    for (let k = order.length - 1; left < 0; k = (k - 1 + order.length) % order.length) {
+      if (days[order[k].i] > 1) { days[order[k].i]--; left++; }
+    }
+
+    roadmap.getCell("B2").value = new Date(`${start}T00:00:00Z`);
+    let cursor = start;
+    const result = phases.map((p, i) => {
+      const cell = roadmap.getCell(`C${p.r}`);
+      cell.value = days[i] / 7;
+      cell.numFmt = "0.0#";
+      const phaseEnd = addDays(cursor, days[i] - 1);
+      const plan = { code: p.code, topics: p.topics, days: days[i], start: cursor, end: phaseEnd };
+      cursor = addDays(cursor, days[i]);
+      return plan;
+    });
+    await save(wb);
+    return result;
+  });
+}
+
 /** Replaces the tracker with an uploaded workbook, keeping a timestamped backup of the current one. */
 export function replaceExcel(upload: Buffer): Promise<{ topics: number }> {
   return exclusive(async () => {
