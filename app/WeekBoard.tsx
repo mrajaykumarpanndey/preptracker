@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { formatLocal, localDay } from "@/lib/time";
-import { clock, daySchedule, FIRST_HOUR, LAST_HOUR, planDays, type Kind } from "@/lib/timetable";
+import { clock, currentStudyDay, daySchedule, FIRST_HOUR, LAST_HOUR, planDays, type Kind } from "@/lib/timetable";
 import type { Row } from "@/lib/store";
 
 // A week planner: study sessions and mock interviews for the next 7 days. Collapsed by default;
@@ -21,11 +20,8 @@ const LABEL: Record<Kind, string> = {
 };
 
 export default function WeekBoard({ rows }: { rows: Row[] }) {
-  const now = new Date();
-  const today = localDay(now);
+  const { day: today, hour: nowHour } = currentStudyDay();
   const days = planDays(rows, today, DAYS);
-  const [hh, mm] = formatLocal(now).slice(11).split(":").map(Number);
-  const nowHour = hh + mm / 60;
   const hours = Array.from({ length: LAST_HOUR - FIRST_HOUR + 1 }, (_, i) => FIRST_HOUR + i);
   const pct = (h: number) => `${((h - FIRST_HOUR) / (LAST_HOUR - FIRST_HOUR)) * 100}%`;
 
@@ -110,7 +106,7 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
                     <Link
                       key={`${b.kind}-${b.row}-${i}`}
                       href={`/interview/${b.row}`}
-                      className={`tile ${b.kind} ${b.end - b.start < 0.85 ? "short" : b.end - b.start < 1.4 ? "mid" : ""}`}
+                      className={`tile ${b.kind} ${b.end - b.start < 1 ? "short" : b.end - b.start < 1.6 ? "mid" : ""}`}
                       style={{ top: pct(b.start), height: `calc(${pct(b.end)} - ${pct(b.start)})` }}
                       title={`${LABEL[b.kind]}: ${b.topic}${b.category ? ` (${b.category})` : ""}, ${clock(b.start)}-${clock(b.end)}`}
                     >

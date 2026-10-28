@@ -1,33 +1,59 @@
 import { config } from "./config";
 import { REVIEWABLE, STATUS } from "./constants";
 import type { Row } from "./sheets";
-import { localDay, parseLocal } from "./time";
+import { formatLocal, localDay, parseLocal } from "./time";
 
 // The daily study plan shared by the dashboard board, interview invites and the morning email,
 // so all three show the same sessions at the same times.
 
-export const FIRST_HOUR = 6;
-export const LAST_HOUR = 23;
+// A "study day" runs from waking up until going to sleep, which can be after midnight: hours past 24
+// (e.g. 26 = 02:00) belong to the evening before.
+export const FIRST_HOUR = config.wakeHour;
+export const LAST_HOUR = config.sleepStartHour + 24;
 const MAX_STUDY_PER_DAY = 12;
 const INTERVIEW_LENGTH = 0.5;
 
 type Window = { start: number; end: number };
-export type DaySchedule = { windows: Window[]; interviewStart: number; office?: Window };
+export type DaySchedule = { windows: Window[]; interviewSlots: number[]; interviewStart: number; office?: Window };
 
 const weekdayOf = (day: string) => new Date(`${day}T12:00:00Z`).getUTCDay();
 
 /**
- * When you can study on a given day. Office days: before work and after work (with an hour to get home),
- * interviews after the evening session. Free days: 09:00-13:00 and 14:00-18:00, interviews from 19:00.
+ * When you can study on a given day, around office and sleep.
+ * Office days: an hour to get home, 3h of study, interviews, then a late session until an hour before sleep.
+ * Free days: two daytime sessions after waking, interviews after dinner, then an evening session.
  */
 export function daySchedule(day: string): DaySchedule {
+  const lastAwake = LAST_HOUR - 1; // stop studying an hour before sleep
   if (config.officeDays.includes(weekdayOf(day))) {
     const office = { start: config.officeStartHour, end: config.officeEndHour };
-    const morning = { start: Math.max(FIRST_HOUR + 1, office.start - 3), end: office.start - 0.5 };
-    const evening = { start: office.end + 1, end: Math.min(office.end + 2.5, LAST_HOUR - 1) };
-    return { windows: [morning, evening].filter((w) => w.end - w.start >= 0.5), interviewStart: evening.end, office };
+    const evening = { start: office.end + 1, end: office.end + 4 };
+    const late = { start: evening.end + 1, end: lastAwake };
+    const interviewSlots = [evening.end, evening.end + 0.5, late.end, late.end + 0.5];
+    return {
+      windows: [evening, late].filter((w) => w.end - w.start >= 0.5),
+      interviewSlots,
+      interviewStart: interviewSlots[0],
+      office,
+    };
   }
-  return { windows: [{ start: 9, end: 13 }, { start: 14, end: 18 }], interviewStart: 19 };
+  const wake = config.wakeHour;
+  const windows = [
+    { start: wake + 2, end: wake + 5 },
+    { start: wake + 6, end: wake + 10 },
+    { start: wake + 12, end: Math.min(wake + 15, lastAwake) },
+  ].filter((w) => w.end - w.start >= 0.5);
+  const interviewSlots = [wake + 11, wake + 11.5, lastAwake, lastAwake + 0.5];
+  return { windows, interviewSlots, interviewStart: interviewSlots[0] };
+}
+
+/** The study day you're in right now, and the hour on its clock (after midnight counts as 24+). */
+export function currentStudyDay(now = new Date()): { day: string; hour: number } {
+  const [hh, mm] = formatLocal(now).slice(11).split(":").map(Number);
+  const hour = hh + mm / 60;
+  return hour < config.sleepStartHour
+    ? { day: addDays(localDay(now), -1), hour: hour + 24 }
+    : { day: localDay(now), hour };
 }
 
 /** Study hours available on a day - used to give busier days fewer topics. */
@@ -44,7 +70,7 @@ export function dueDate(row: Row): Date | null {
 }
 
 export const clock = (h: number) =>
-  `${String(Math.floor(h)).padStart(2, "0")}:${String(Math.round((h % 1) * 60)).padStart(2, "0")}`;
+  `${String(Math.floor(h) % 24).padStart(2, "0")}:${String(Math.round((h % 1) * 60)).padStart(2, "0")}`;
 
 const addDays = (day: string, n: number) =>
   new Date(Date.parse(`${day}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
@@ -57,14 +83,16 @@ function sameDayInterviews(rows: Row[], day: string): Row[] {
     .sort((a, b) => dueDate(a)!.getTime() - dueDate(b)!.getTime() || a.row - b.row);
 }
 
-/** Evening interview slot for a topic on its due day: 19:00, 19:30, 20:00 ... in due order. */
+/** Interview slot for a topic on its due day, from that day's interview slots in due order. */
 export function interviewStart(rows: Row[], row: Row): Date | null {
   const due = dueDate(row);
   if (!due) return null;
   const day = localDay(due);
   const index = Math.max(0, sameDayInterviews(rows, day).findIndex((r) => r.row === row.row));
-  const hour = Math.min(daySchedule(day).interviewStart + index * INTERVIEW_LENGTH, LAST_HOUR - INTERVIEW_LENGTH);
-  return parseLocal(`${day} ${clock(hour)}`);
+  const slots = daySchedule(day).interviewSlots;
+  const hour = slots[Math.min(index, slots.length - 1)];
+  const date = parseLocal(`${day} ${clock(hour)}`);
+  return date && hour >= 24 ? new Date(date.getTime() + 86_400_000) : date; // after midnight = next calendar day
 }
 
 export function planDays(rows: Row[], today: string, count: number): PlanDay[] {
@@ -96,7 +124,7 @@ export function planDays(rows: Row[], today: string, count: number): PlanDay[] {
   }
 
   return days.map((day) => {
-    const { windows, interviewStart: eveningStart } = daySchedule(day);
+    const { windows, interviewSlots } = daySchedule(day);
     const items = buckets.get(day)!;
     const shown = items.slice(0, MAX_STUDY_PER_DAY);
     const blocks: Block[] = [];
@@ -129,8 +157,8 @@ export function planDays(rows: Row[], today: string, count: number): PlanDay[] {
       ...(day === today ? items.filter((r) => reviewable(r) && localDay(dueDate(r)!) < today) : []), // overdue
     ];
     evening.forEach((row, i) => {
-      const start = eveningStart + i * INTERVIEW_LENGTH;
-      if (start + INTERVIEW_LENGTH > LAST_HOUR) return;
+      if (i >= interviewSlots.length) return;
+      const start = interviewSlots[i];
       blocks.push({ row: row.row, topic: row.topic, category: row.category, kind: "interview", start, end: start + INTERVIEW_LENGTH });
     });
 

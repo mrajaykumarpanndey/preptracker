@@ -51,4 +51,7 @@ export const config = {
   },
   get officeStartHour() { return number("OFFICE_START_HOUR", 10); },
   get officeEndHour() { return number("OFFICE_END_HOUR", 19); },
+  // Sleep: from SLEEP_START_HOUR (after midnight, e.g. 4 = 04:00) until WAKE_HOUR.
+  get sleepStartHour() { return number("SLEEP_START_HOUR", 4); },
+  get wakeHour() { return number("WAKE_HOUR", 9); },
 };

@@ -5,7 +5,7 @@ import { oauthConnected } from "./google";
 import { buildInvite, escapeHtml, sendMail } from "./mail";
 import { listRows, updateRows, type Row, type RowUpdate } from "./store";
 import { formatLocal, localDay, localHour } from "./time";
-import { clock, dueDate, interviewStart, planDays, type Kind } from "./timetable";
+import { clock, currentStudyDay, dueDate, interviewStart, planDays, type Kind } from "./timetable";
 
 export { dueDate };
 
@@ -99,7 +99,7 @@ async function sendDigest(items: DigestItem[], rows: Row[]): Promise<void> {
   await sendMail({
     subject: `Prep check-in: ${items.length} topic(s) need attention${overdue ? `, ${overdue} overdue` : ""}`,
     html: `<p>Progress: <b>${done} of ${rows.length}</b> topics done (${Math.round((done / Math.max(rows.length, 1)) * 100)}%).</p>
-${timetableHtml(rows, localDay(new Date()))}
+${timetableHtml(rows, currentStudyDay().day)}
 <h3 style="margin:18px 0 6px">Due and overdue</h3><ul>${sorted.slice(0, DIGEST_LIMIT).map(line).join("")}</ul>
 ${more > 0 ? `<p>...and ${more} more.</p>` : ""}
 <p><a href="${config.appUrl}">Open your tracker</a></p>`,
