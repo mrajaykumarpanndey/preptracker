@@ -1,0 +1,9 @@
+node_modules
+.next
+.next-test
+.env*
+data
+*.xlsx
+client_secret*.json
+service-account*.json
+README.md
