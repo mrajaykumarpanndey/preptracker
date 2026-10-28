@@ -288,3 +288,18 @@ td.action { text-align: right; white-space: nowrap; }
 .chart-table summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 600; width: fit-content; }
 .data-table { margin-top: 8px; font-size: 13px; }
 .data-table th, .data-table td { padding: 6px 10px; }
+
+.status-select select.badge {
+  appearance: none; -webkit-appearance: none; border: none; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600;
+  padding: 3px 22px 3px 10px; border-radius: 999px;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 11px) 55%, calc(100% - 7px) 55%; background-size: 4px 4px; background-repeat: no-repeat;
+}
+.status-select select.badge.done { background-color: var(--good-soft); }
+.status-select select.badge.needs { background-color: var(--bad-soft); }
+.status-select select.badge.review { background-color: var(--accent-soft); }
+.status-select select.badge.pending { background-color: var(--surface-2); }
+.status-select select:disabled { opacity: .6; }
+.status-select option { color: var(--text); background: var(--surface); }
+.upload-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.upload-form input[type="file"] { flex: 1; min-width: 200px; }

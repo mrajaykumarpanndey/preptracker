@@ -3,7 +3,7 @@ import { excelExists, excelPath } from "@/lib/excel";
 import { oauthConfigured, oauthConnected } from "@/lib/google";
 import { dataSource } from "@/lib/store";
 import { readSettings } from "@/lib/settings";
-import { connectSheet, createSheet } from "./actions";
+import { connectSheet, createSheet, uploadExcel } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +29,21 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             {!excelExists() && <b className="overdue"> - file not found</b>}.
           </p>
           <p className="muted small">
-            Change topic statuses and dates in Excel, then save; the portal picks up changes automatically. Close the file
-            in Excel while an interview is being scored, otherwise saving in Excel can overwrite the score the portal
-            just wrote. To use a Google Sheet instead, set <code>DATA_SOURCE=google</code> in .env.local.
+            Change a topic&apos;s status from the Tracker page. For bigger edits (dates, weeks, new topics), download the
+            file, edit it in Excel and upload it here. Uploading replaces the server copy; the previous one is kept as a
+            backup. Download a fresh copy first so you don&apos;t lose scores recorded since your last download.
           </p>
+          <div className="actions" style={{ marginLeft: 0 }}>
+            <a href="/api/excel" className="button-link">
+              Download Excel
+            </a>
+          </div>
+          <form action={uploadExcel} className="upload-form">
+            <input type="file" name="file" accept=".xlsx" required />
+            <button type="submit" className="secondary">
+              Upload Excel
+            </button>
+          </form>
         </section>
       )}
 

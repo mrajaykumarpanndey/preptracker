@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { replaceExcel } from "@/lib/excel";
 import { saveSettings } from "@/lib/settings";
 import { createTrackerSheet, inspectSheet, setupSheet } from "@/lib/sheets";
 import { formatLocal } from "@/lib/time";
@@ -42,4 +44,20 @@ export async function createSheet() {
   }
   saveSettings({ sheetId: created!.id, sheetTitle: created!.title });
   redirect(`/settings?ok=${encodeURIComponent(`Created "${created!.title}" in your Google Drive with an example row.`)}`);
+}
+
+export async function uploadExcel(formData: FormData) {
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) fail("Choose an .xlsx file to upload.");
+  if (!/\.xlsx$/i.test((file as File).name)) fail("Only .xlsx files are supported.");
+
+  let topics = 0;
+  try {
+    ({ topics } = await replaceExcel(Buffer.from(await (file as File).arrayBuffer())));
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+  revalidatePath("/");
+  revalidatePath("/insights");
+  redirect(`/settings?ok=${encodeURIComponent(`Uploaded - ${topics} topics loaded. The previous file was backed up.`)}`);
 }

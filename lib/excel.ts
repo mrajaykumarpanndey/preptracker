@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { copyFileSync, existsSync, statSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { STATUS } from "./constants";
 import type { Field, HistoryEntry, Row, RowUpdate } from "./sheets";
@@ -310,6 +310,30 @@ function prepare(wb: ExcelJS.Workbook): void {
     history.getRow(1).eachCell((cell) => (cell.style = structuredClone(ws.getCell("I1").style)));
     history.views = [{ state: "frozen", ySplit: 1 }];
   }
+}
+
+/** Replaces the tracker with an uploaded workbook, keeping a timestamped backup of the current one. */
+export function replaceExcel(upload: Buffer): Promise<{ topics: number }> {
+  return exclusive(async () => {
+    const wb = new ExcelJS.Workbook();
+    try {
+      await wb.xlsx.load(upload as unknown as ArrayBuffer);
+    } catch {
+      throw new Error("That file isn't a readable .xlsx workbook.");
+    }
+    if (!wb.getWorksheet(TOPICS)) throw new Error(`The workbook needs a "${TOPICS}" sheet.`);
+    const topics = parseRows(wb).length;
+
+    if (existsSync(excelPath())) {
+      const dir = path.join(path.dirname(excelPath()), "backups");
+      mkdirSync(dir, { recursive: true });
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      copyFileSync(excelPath(), path.join(dir, `${path.basename(excelPath(), ".xlsx")}-${stamp}.xlsx`));
+    }
+    prepare(wb);
+    await save(wb);
+    return { topics };
+  });
 }
 
 export function prepareExcel(): Promise<void> {

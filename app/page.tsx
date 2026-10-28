@@ -1,6 +1,7 @@
 import Link from "next/link";
 import FeedbackDetails from "./FeedbackDetails";
 import Nav from "./Nav";
+import StatusSelect from "./StatusSelect";
 import { REVIEWABLE, STATUS } from "@/lib/constants";
 import { excelPath } from "@/lib/excel";
 import { oauthConfigured, oauthConnected } from "@/lib/google";
@@ -18,13 +19,6 @@ const VIEWS = {
   all: "All topics",
 } as const;
 type View = keyof typeof VIEWS;
-
-function badgeClass(status: string): string {
-  if (status === STATUS.DONE) return "done";
-  if (status === STATUS.NEEDS_WORK) return "needs";
-  if (status === STATUS.READY || status === STATUS.IN_PROGRESS) return "review";
-  return "pending";
-}
 
 const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
@@ -185,8 +179,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         ))}
       </nav>
       <p className="muted small">
-        Change a topic&apos;s Status in {source === "excel" ? "the Excel file" : "the Google Sheet"} to &quot;
-        {STATUS.IN_PROGRESS}&quot; when you start it; you&apos;ll get an interview invite before its due date.
+        Set a topic to &quot;{STATUS.IN_PROGRESS}&quot; when you start it (click its status); you&apos;ll get an interview
+        invite before its due date.
       </p>
 
       {visible.length === 0 ? (
@@ -218,7 +212,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                     </td>
                     {showPhase && <td>{row.phase}</td>}
                     <td>
-                      <span className={`badge ${badgeClass(row.status)}`}>{row.status || STATUS.NOT_STARTED}</span>
+                      <StatusSelect key={row.status} row={row.row} status={row.status} />
                     </td>
                     <td>
                       <DueCell due={dueDate(row)} done={row.status === STATUS.DONE} now={now} />
