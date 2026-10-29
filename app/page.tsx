@@ -227,6 +227,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                       <Feedback row={row} />
                     </td>
                     <td className="action">
+                      <Link href={`/guide/${row.row}`} className="guide-link">
+                        Guide
+                      </Link>
                       <Link href={`/interview/${row.row}`} className="interview-link">
                         {row.status === STATUS.DONE ? "Retake" : row.score ? "Retry" : "Start"}
                       </Link>

@@ -3,7 +3,12 @@ import { config } from "./config";
 
 let transport: Transporter | undefined;
 
-export async function sendMail(opts: { subject: string; html: string; ics?: string }): Promise<void> {
+export async function sendMail(opts: {
+  subject: string;
+  html: string;
+  ics?: string;
+  attachments?: { filename: string; content: Buffer }[];
+}): Promise<void> {
   // Preview mode for development: write the email to a file instead of sending it.
   const previewDir = process.env.MAIL_PREVIEW_DIR;
   if (previewDir) {
@@ -21,6 +26,7 @@ export async function sendMail(opts: { subject: string; html: string; ics?: stri
     html: opts.html,
     // Gmail/Outlook show this as a calendar invite with Yes/No/Maybe buttons.
     icalEvent: opts.ics ? { method: "REQUEST", content: opts.ics } : undefined,
+    attachments: opts.attachments,
   });
 }
 

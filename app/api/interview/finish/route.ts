@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { evaluateInterview } from "@/lib/claude";
+import { interviewContext } from "@/lib/guide";
 import { config } from "@/lib/config";
 import { STATUS, type ChatTurn } from "@/lib/constants";
 import { esc, heading, list, p, renderEmail } from "@/lib/emailTemplate";
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await evaluateInterview(row.topic, row.keyPoints, turns);
+    const result = await evaluateInterview(row.topic, interviewContext(row), turns);
     const passed = result.score >= config.passScore;
     const status = passed ? STATUS.DONE : STATUS.NEEDS_WORK;
     const now = new Date();
@@ -32,9 +33,10 @@ export async function POST(req: Request) {
     const retryDay = localDay(new Date(now.getTime() + config.retryDays * 86_400_000));
     const nextReview = passed ? "" : formatLocal(parseLocal(retryDay)!);
     const feedback = [
-      result.verdict,
+      `${result.verdict} (Understanding ${result.understanding}/10, Building ${result.application}/10)`,
       result.gaps.length ? `Revise: ${result.gaps.join("; ")}` : "",
       result.feedback,
+      `Build next: ${result.buildNext}`,
     ]
       .filter(Boolean)
       .join("\n");
@@ -57,10 +59,13 @@ export async function POST(req: Request) {
         title: passed ? `You passed ${row.topic} with ${result.score}/10` : `${row.topic}: ${result.score}/10 - one more round`,
         body: [
           p(`<b>${esc(result.verdict)}</b>`),
+          p(`Understanding <b>${result.understanding}/10</b> &nbsp;·&nbsp; Building &amp; applying <b>${result.application}/10</b>`),
           result.strengths.length ? heading("What went well") + list(result.strengths.map(esc)) : "",
           result.gaps.length ? heading("Revise these") + list(result.gaps.map(esc)) : "",
           heading("Advice"),
           p(esc(result.feedback)),
+          heading("Build next"),
+          p(esc(result.buildNext)),
           p(`Focused time: <b>${focusedMinutes} min</b> across ${turns.filter((t) => t.role === "user").length} answers.`),
           p(
             passed

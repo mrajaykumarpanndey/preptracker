@@ -7,6 +7,9 @@ import Markdown from "./Markdown";
 type Result = {
   focusedSeconds: number;
   score: number;
+  understanding: number;
+  application: number;
+  buildNext: string;
   verdict: string;
   strengths: string[];
   gaps: string[];
@@ -108,7 +111,27 @@ function ResultCard({ result }: { result: Result }) {
           </div>
         )}
       </div>
+      <div className="subscores">
+        <div>
+          <span className="muted small">Understanding</span>
+          <div className="subscore-bar">
+            <i style={{ width: `${result.understanding * 10}%` }} />
+          </div>
+          <b>{result.understanding}/10</b>
+        </div>
+        <div>
+          <span className="muted small">Building &amp; applying</span>
+          <div className="subscore-bar">
+            <i style={{ width: `${result.application * 10}%` }} />
+          </div>
+          <b>{result.application}/10</b>
+        </div>
+      </div>
       <p className="advice">{result.feedback}</p>
+      <div className="build-next">
+        <p className="eyebrow">Build next</p>
+        <p>{result.buildNext}</p>
+      </div>
       <p className="muted small" style={{ marginBottom: 16 }}>
         Focused time: <b>{duration(result.focusedSeconds)}</b>
       </p>

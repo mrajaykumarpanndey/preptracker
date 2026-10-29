@@ -30,6 +30,9 @@ export default async function InterviewPage({ params }: { params: Promise<{ row:
           {row.category && <span className="chip">{row.category}</span>}
           {row.phase && <span className="chip">{row.phase}</span>}
           {row.score && <span className="chip">Last score {row.score}/10</span>}
+          <Link href={`/guide/${row.row}`} className="chip chip-link">
+            Study guide
+          </Link>
         </div>
       </header>
       <InterviewChat row={row.row} />

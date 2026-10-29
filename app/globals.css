@@ -431,3 +431,58 @@ td.action { text-align: right; white-space: nowrap; }
   .focus-timer:not(.paused) .focus-dot { animation: pulse 2s ease-in-out infinite; }
   @keyframes pulse { 50% { box-shadow: 0 0 0 6px transparent; } }
 }
+
+/* ---------- Study guide ---------- */
+.guide { max-width: 760px; margin: 0 auto; }
+.guide h1 { font-size: 28px; }
+.guide h2 { font-size: 18px; margin: 30px 0 10px; }
+.guide p { line-height: 1.7; }
+.guide-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0 6px; }
+.secondary-link { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.guide-summary { font-size: 17px; background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 10px; margin: 18px 0 10px; }
+.guide-points { list-style: none; counter-reset: point; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; }
+.guide-points li { counter-increment: point; display: grid; grid-template-columns: 28px 1fr; column-gap: 12px; }
+.guide-points li::before {
+  content: counter(point); grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 13px;
+}
+.guide-points span { color: var(--muted); line-height: 1.65; }
+.flow { display: grid; align-items: stretch; gap: 14px 26px; margin: 6px 0 10px; }
+.flow-step {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  padding: 14px 12px; text-align: center; font-weight: 600; font-size: 14px;
+  background: var(--accent-soft); border: 1.5px solid var(--accent); border-radius: 10px;
+}
+.flow-step:not(.row-end)::after { content: "→"; position: absolute; right: -21px; top: 50%; transform: translateY(-50%); color: var(--accent); font-size: 18px; font-weight: 700; }
+.flow-num { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 12px; display: grid; place-items: center; }
+.guide-code { background: var(--code-bg); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: 13px; line-height: 1.55; }
+.build { margin-top: 30px; padding: 18px 20px; border: 1px solid var(--border); border-top: 4px solid var(--good); border-radius: var(--radius); background: var(--surface); }
+.build h2 { margin-top: 0; }
+.build ol { padding-left: 20px; line-height: 1.7; }
+.build dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 12px 0 0; font-size: 14px; }
+.build dt { color: var(--muted); font-weight: 600; }
+.build dd { margin: 0; }
+.guide-pitfalls { padding-left: 20px; line-height: 1.7; }
+.guide-pitfalls li::marker { color: var(--bad); }
+.guide-qa { display: flex; flex-direction: column; gap: 8px; }
+.guide-qa details { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+.guide-qa summary { cursor: pointer; font-weight: 600; }
+.guide-qa p { margin: 8px 0 0; color: var(--muted); }
+.guide-recap { background: var(--good-soft); border-radius: 10px; padding: 12px 16px 12px 34px; line-height: 1.8; }
+.guide-skeleton { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+.guide-skeleton span { height: 16px; border-radius: 8px; background: var(--surface-2); animation: shimmer 1.4s ease-in-out infinite; }
+.guide-skeleton span:nth-child(2) { width: 80%; }
+.guide-skeleton span:nth-child(3) { width: 60%; }
+@keyframes shimmer { 50% { opacity: .5; } }
+@media (max-width: 560px) { .flow { grid-template-columns: 1fr !important; gap: 10px; } .flow-step::after { content: none !important; } }
+.guide-link { font-size: 13px; font-weight: 600; text-decoration: none; margin-right: 10px; }
+.chip-link { color: var(--accent); text-decoration: none; border-color: var(--accent); }
+
+.subscores { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 18px 0 4px; }
+.subscores > div { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; }
+.subscores .muted { grid-column: 1 / -1; }
+.subscore-bar { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.subscore-bar i { display: block; height: 100%; background: var(--series-1); border-radius: 4px; }
+.build-next { border-left: 4px solid var(--good); background: var(--good-soft); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; }
+.build-next p { margin: 0; }
+.build-next .eyebrow { color: var(--good); margin-bottom: 4px; }

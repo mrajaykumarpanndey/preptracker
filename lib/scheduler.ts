@@ -3,6 +3,8 @@ import { config } from "./config";
 import { REVIEWABLE, STATUS } from "./constants";
 import { oauthConnected } from "./google";
 import { esc, heading, list, p, progressBar, renderEmail, schedule } from "./emailTemplate";
+import { getGuide } from "./guide";
+import { renderGuidePdf } from "./guidePdf";
 import { buildInvite, sendMail } from "./mail";
 import { listRows, updateRows, type Row, type RowUpdate } from "./store";
 import { formatLocal, localDay, localHour } from "./time";
@@ -38,7 +40,14 @@ export async function sendInvite(row: Row, start: Date, dueKey: string): Promise
   }
 
   const when = formatLocal(start);
-  const points = row.keyPoints.split("\n").filter(Boolean).map((line) => esc(line));
+  const guideUrl = `${config.appUrl}/guide/${row.row}`;
+  // The study guide goes along as a PDF; if it can't be written right now the invite still goes out.
+  let guidePdf: Buffer | undefined;
+  try {
+    guidePdf = await renderGuidePdf(await getGuide(row), { phase: row.phase });
+  } catch (error) {
+    console.error(`Study guide for "${row.topic}" failed`, error);
+  }
   await sendMail({
     subject: `Mock interview: ${row.topic} at ${when.slice(11)} on ${when.slice(0, 10)}`,
     html: renderEmail({
@@ -51,11 +60,17 @@ export async function sendInvite(row: Row, start: Date, dueKey: string): Promise
           }.`,
         ),
         p("The AI interviewer asks one question at a time and follows up on vague answers. Answer as you would in a real interview - your score goes straight into your tracker."),
-        points.length ? heading("Revise before you start") + list(points) : "",
+        heading("Get ready"),
+        p(
+          `${guidePdf ? "Your <b>study guide is attached as a PDF</b>" : "Your study guide is ready online"}: key ideas, a diagram or code example, a small hands-on build exercise, and the questions you're likely to get. <a href="${guideUrl}" style="color:#2a63d6">Read it online</a>.`,
+        ),
       ].join(""),
       cta: { label: "Start the interview", url },
     }),
     ics: eventId ? undefined : buildInvite({ uid: `prep-${row.row}-${start.getTime()}@prep-tracker`, ...event }),
+    attachments: guidePdf
+      ? [{ filename: `Study guide - ${row.topic.replace(/[^\w ,.-]+/g, "")}.pdf`, content: guidePdf }]
+      : undefined,
   });
   return eventId ? `${dueKey}|${eventId}` : dueKey;
 }

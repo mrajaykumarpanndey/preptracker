@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { nextInterviewTurn } from "@/lib/claude";
+import { interviewContext } from "@/lib/guide";
 import { STATUS, type ChatTurn } from "@/lib/constants";
 import { getRow, updateRow } from "@/lib/store";
 
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
   if (!row) return NextResponse.json({ error: "Topic not found in the sheet" }, { status: 404 });
 
   try {
-    const reply = await nextInterviewTurn(row.topic, row.keyPoints, turns);
+    const reply = await nextInterviewTurn(row.topic, interviewContext(row), turns);
     if (turns.length === 0 && (!row.status || row.status === STATUS.NOT_STARTED)) {
       await updateRow(row.row, { status: STATUS.IN_PROGRESS });
     }
