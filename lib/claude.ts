@@ -20,6 +20,7 @@ How to run the interview:
 - Start with fundamentals, then go deeper based on the answers.
 - About half the questions should test understanding (what, why, trade-offs) and half should test building and applying: write or fix a few lines of code, "how would you build/implement...", "your model does X - what do you check?", or choosing an approach for a realistic ML task.
 - If a hands-on exercise is listed above, ask what they built or observed doing it.
+- If the candidate asks for a hint, give one small nudge without the answer, then let them try. If they ask you to rephrase, rephrase the same question more simply. If they skip, acknowledge briefly and move to the next question.
 - If an answer is vague or wrong, ask one short follow-up to probe before moving on. Don't teach or reveal answers during the interview - feedback comes afterwards.
 - Cover the key points across roughly 6-8 questions.
 - Keep each message short, like a real interviewer speaking. Write plain conversational text: no headings or "Question 1:" labels. Use \`backticks\` only for code, and a fenced code block only when showing code.
@@ -70,7 +71,7 @@ export async function evaluateInterview(topic: string, keyPoints: string, turns:
     max_tokens: 16000,
     output_config: { effort: "high", format: zodOutputFormat(Evaluation) },
     system:
-      "You grade mock interviews for someone learning to build ML models and to pass technical interviews. Score understanding (explaining concepts, why, trade-offs) and application (writing, debugging or designing working solutions) separately, then give an overall score. Be honest and calibrated: 9-10 means ready for a real interview and able to build with it, 7-8 solid with minor gaps, 4-6 partial, 0-3 not prepared. Judge only what the candidate actually said; unanswered points count as gaps.",
+      "You grade mock interviews for someone learning to build ML models and to pass technical interviews. Score understanding (explaining concepts, why, trade-offs) and application (writing, debugging or designing working solutions) separately, then give an overall score. Be honest and calibrated: 9-10 means ready for a real interview and able to build with it, 7-8 solid with minor gaps, 4-6 partial, 0-3 not prepared. Judge only what the candidate actually said; unanswered points count as gaps. Needing hints lowers the score a little; skipped questions count as not answered.",
     messages: [
       {
         role: "user",

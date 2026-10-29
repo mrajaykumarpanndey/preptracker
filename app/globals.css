@@ -561,3 +561,71 @@ button.danger { color: var(--bad); border-color: var(--bad); }
 .qa-edit p { margin: 0; color: var(--muted); }
 .code-editor { font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code-bg); border-radius: 10px; padding: 14px 16px; resize: vertical; }
 .build dl > div { margin: 0; }
+
+/* ---------- Interview room ---------- */
+.room-page { max-width: 1080px; }
+.room-page .interview-head h1 { font-size: 30px; }
+.room { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; align-items: start; }
+.room-side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 860px) {
+  .room { grid-template-columns: 1fr; }
+  .room-side { position: static; order: -1; display: grid; grid-template-columns: auto 1fr; }
+  .room-side .side-card:last-of-type, .finish-early { grid-column: 1 / -1; }
+}
+
+.side-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.side-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.dots { display: flex; gap: 6px; flex-wrap: wrap; }
+.dots i { width: 22px; height: 8px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--border); transition: background .3s; }
+.dots i.done { background: var(--good); border-color: var(--good); }
+.dots i.current { background: var(--accent); border-color: var(--accent); animation: pulse-bar 1.6s ease-in-out infinite; }
+@keyframes pulse-bar { 50% { opacity: .55; } }
+.tips { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.finish-early { width: 100%; }
+
+.timer-ring { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.timer-ring svg { width: 132px; height: 132px; transform: rotate(-90deg); }
+.timer-ring circle { fill: none; stroke-width: 8; }
+.timer-ring .track { stroke: var(--surface-2); }
+.timer-ring .arc { stroke: var(--good); stroke-linecap: round; stroke-dasharray: 326.7; transition: stroke-dashoffset 1s linear; }
+.timer-ring.paused .arc { stroke: var(--warn); }
+.timer-ring-text { position: absolute; top: 16px; height: 132px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.timer-ring-text b { font-size: 26px; font-variant-numeric: tabular-nums; }
+.timer-ring-text span { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.timer-ring.paused .timer-ring-text span { color: var(--warn); font-weight: 700; }
+.timer-ring p { margin: 0; }
+
+.lobby {
+  margin-top: 8px; padding: 28px; border-radius: 18px; border: 1px solid var(--border);
+  background: radial-gradient(120% 140% at 100% 0%, var(--accent-soft) 0%, var(--surface) 55%);
+  box-shadow: var(--shadow);
+}
+.lobby h2 { font-size: 22px; margin-bottom: 12px; }
+.lobby-list { margin: 0 0 20px; padding-left: 20px; line-height: 1.8; }
+button.big { padding: 12px 26px; font-size: 16px; border-radius: 12px; }
+
+.room .chat { margin-top: 0; }
+.msg { animation: msg-in .25s ease-out; }
+@keyframes msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.msg.theirs .bubble { border-left: 3px solid var(--accent); }
+.msg.mine .bubble .md p { margin-bottom: 8px; }
+.msg.mine .bubble .md > :last-child { margin-bottom: 0; }
+
+.room .composer { position: sticky; bottom: 12px; padding: 12px; }
+.quick-replies { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 4px 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.chip-button {
+  font-size: 12.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px;
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+}
+.chip-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); opacity: 1; }
+.room .composer textarea { min-height: 76px; font-size: 15px; }
+button.send { padding: 10px 20px; border-radius: 10px; }
+button.send:not(:disabled) { box-shadow: 0 4px 14px -4px color-mix(in srgb, var(--accent) 60%, transparent); }
+
+.wrap-up {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 18px 20px; border-radius: var(--radius); border: 1px solid var(--good);
+  background: var(--good-soft);
+}
+.wrap-up p { margin: 4px 0 0; }
+@media (prefers-reduced-motion: reduce) { .msg, .dots i.current { animation: none; } .timer-ring .arc { transition: none; } }

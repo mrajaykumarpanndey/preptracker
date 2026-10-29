@@ -19,7 +19,7 @@ export default async function InterviewPage({ params }: { params: Promise<{ row:
   }
 
   return (
-    <div className="interview">
+    <div className="interview room-page">
       <Link href="/" className="back">
         &larr; Back to tracker
       </Link>
@@ -35,7 +35,7 @@ export default async function InterviewPage({ params }: { params: Promise<{ row:
           </Link>
         </div>
       </header>
-      <InterviewChat row={row.row} />
+      <InterviewChat row={row.row} topic={row.topic} />
     </div>
   );
 }
