@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { getRow } from "@/lib/store";
+import { attemptsByTopic, getRow, listHistory } from "@/lib/store";
 import InterviewChat from "./InterviewChat";
 
 export const dynamic = "force-dynamic";
 
 export default async function InterviewPage({ params }: { params: Promise<{ row: string }> }) {
   const { row: rowParam } = await params;
-  const row = await getRow(Number(rowParam));
+  const [row, history] = await Promise.all([getRow(Number(rowParam)), listHistory()]);
+  const previous = row ? attemptsByTopic(history).get(row.topic) : undefined;
 
   if (!row) {
     return (
@@ -27,6 +28,7 @@ export default async function InterviewPage({ params }: { params: Promise<{ row:
         <p className="eyebrow">Mock interview</p>
         <h1>{row.topic}</h1>
         <div className="chips">
+          <span className="chip chip-attempt">Attempt #{(previous?.count ?? 0) + 1}</span>
           {row.category && <span className="chip">{row.category}</span>}
           {row.phase && <span className="chip">{row.phase}</span>}
           {row.score && <span className="chip">Last score {row.score}/10</span>}
@@ -35,7 +37,7 @@ export default async function InterviewPage({ params }: { params: Promise<{ row:
           </Link>
         </div>
       </header>
-      <InterviewChat row={row.row} topic={row.topic} />
+      <InterviewChat row={row.row} topic={row.topic} previous={previous} />
     </div>
   );
 }

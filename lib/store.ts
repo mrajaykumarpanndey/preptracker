@@ -67,3 +67,15 @@ export function recordStudy(entry: StudySession): Promise<void> {
 export function appendHistory(values: string[]): Promise<void> {
   return dataSource() === "excel" ? appendExcelHistory(values) : sheets.appendHistory(values);
 }
+
+export type Attempts = { count: number; best: number; last: number };
+
+/** Interview attempts per topic, from the history (oldest to newest). */
+export function attemptsByTopic(history: HistoryEntry[]): Map<string, Attempts> {
+  const byTopic = new Map<string, Attempts>();
+  for (const h of [...history].sort((a, b) => a.date.localeCompare(b.date))) {
+    const a = byTopic.get(h.topic) ?? { count: 0, best: 0, last: 0 };
+    byTopic.set(h.topic, { count: a.count + 1, best: Math.max(a.best, h.score), last: h.score });
+  }
+  return byTopic;
+}

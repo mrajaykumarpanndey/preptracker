@@ -3,11 +3,12 @@ import FeedbackDetails from "./FeedbackDetails";
 import Nav from "./Nav";
 import StatusSelect from "./StatusSelect";
 import WeekBoard from "./WeekBoard";
+import { config } from "@/lib/config";
 import { REVIEWABLE, STATUS } from "@/lib/constants";
 import { excelPath } from "@/lib/excel";
 import { oauthConfigured, oauthConnected } from "@/lib/google";
 import { dueDate } from "@/lib/scheduler";
-import { dataSource, hasData, listRows, type Row } from "@/lib/store";
+import { attemptsByTopic, dataSource, hasData, listHistory, listRows, type Attempts, type Row } from "@/lib/store";
 import { formatLocal } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -120,8 +121,15 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   }
 
   let rows: Row[];
+  let attempts: Map<string, Attempts>;
+  let interviewsTaken = 0;
+  let interviewsPassed = 0;
   try {
-    rows = await listRows();
+    const [rowList, history] = await Promise.all([listRows(), listHistory()]);
+    rows = rowList;
+    attempts = attemptsByTopic(history);
+    interviewsTaken = history.length;
+    interviewsPassed = history.filter((h) => h.score >= config.passScore).length;
   } catch (error) {
     return (
       <>
@@ -165,6 +173,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         <div className="card stat">
           <div className="stat-value">{inReview}</div>
           <div className="muted small">in progress / review</div>
+        </div>
+        <div className="card stat">
+          <div className="stat-value">{interviewsTaken}</div>
+          <div className="muted small">
+            interviews attempted{interviewsTaken ? `, ${interviewsPassed} passed` : ""}
+          </div>
         </div>
         <div className="card stat">
           <div className="stat-value">{avgScore === null ? "-" : avgScore.toFixed(1)}</div>
@@ -222,6 +236,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                     </td>
                     <td>
                       <ScoreBadge score={row.score} />
+                      {attempts.get(row.topic) && (
+                        <div className="muted small attempts">
+                          {attempts.get(row.topic)!.count} attempt{attempts.get(row.topic)!.count === 1 ? "" : "s"}
+                          {attempts.get(row.topic)!.count > 1 && <> · best {attempts.get(row.topic)!.best}</>}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <Feedback row={row} />

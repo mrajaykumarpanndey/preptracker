@@ -170,7 +170,15 @@ function TimerRing({ seconds, questionSeconds, focused, running }: { seconds: nu
   );
 }
 
-export default function InterviewChat({ row, topic }: { row: number; topic: string }) {
+export default function InterviewChat({
+  row,
+  topic,
+  previous,
+}: {
+  row: number;
+  topic: string;
+  previous?: { count: number; best: number; last: number };
+}) {
   const [started, setStarted] = useState(false);
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [draft, setDraft] = useState("");
@@ -267,6 +275,18 @@ export default function InterviewChat({ row, topic }: { row: number; topic: stri
         <div>
           <p className="eyebrow">Ready when you are</p>
           <h2>Mock interview on {topic}</h2>
+          <p className="attempt-line">
+            {previous ? (
+              <>
+                This is <b>attempt #{previous.count + 1}</b> - you&apos;ve tried this topic {previous.count} time
+                {previous.count === 1 ? "" : "s"}. Best score <b>{previous.best}/10</b>, last <b>{previous.last}/10</b>.
+              </>
+            ) : (
+              <>
+                This is your <b>first attempt</b> at this topic.
+              </>
+            )}
+          </p>
           <ul className="lobby-list">
             <li>
               <b>About {EXPECTED_QUESTIONS} questions</b>, one at a time - half on understanding, half on building and
