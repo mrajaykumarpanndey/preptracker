@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { END_MARKER, STATUS, type ChatTurn } from "@/lib/constants";
 import { duration, useFocusTimer } from "../../useFocusTimer";
 import Markdown from "./Markdown";
@@ -23,15 +23,20 @@ type Result = {
 // The interviewer is asked for roughly 6-8 questions; used for the progress dots.
 const EXPECTED_QUESTIONS = 7;
 
+const EXPLAIN = "Could you explain this question in more detail - what exactly you're asking, what the terms mean, and maybe a small example scenario? Please don't give away the answer.";
+const REPHRASE = "Could you rephrase that question more simply?";
+
 const QUICK_REPLIES = [
   { label: "💡 Hint", text: "Could I get a small hint for this one?" },
-  { label: "🔁 Rephrase", text: "Could you rephrase that question?" },
+  { label: "🔎 Explain more", text: EXPLAIN },
+  { label: "🔁 Rephrase", text: REPHRASE },
   { label: "⏭ Skip", text: "I'm not sure about this one - I'd like to skip it. Next question please." },
 ];
 
 // Hints and rephrases stay on the same question; anything else the candidate sends (including a skip)
 // moves the interview on.
-const SAME_QUESTION = new Set(QUICK_REPLIES.slice(0, 2).map((q) => q.text));
+const SAME_QUESTION = new Set(QUICK_REPLIES.slice(0, 3).map((q) => q.text));
+const SHORT_LABEL = new Map(QUICK_REPLIES.map((q) => [q.text, q.label]));
 const movesOn = (turn: ChatTurn) => turn.role === "user" && !SAME_QUESTION.has(turn.content);
 
 /** Question number for each interviewer message (undefined for the closing message). */
@@ -63,8 +68,9 @@ async function post<T>(url: string, body: unknown): Promise<T> {
   return data;
 }
 
-function Message({ turn, question }: { turn: ChatTurn; question?: number }) {
+function Message({ turn, question, actions }: { turn: ChatTurn; question?: number; actions?: ReactNode }) {
   const mine = turn.role === "user";
+  const quick = mine ? SHORT_LABEL.get(turn.content) : undefined;
   return (
     <div className={`msg ${mine ? "mine" : "theirs"}`}>
       <div className="avatar" aria-hidden>
@@ -72,9 +78,10 @@ function Message({ turn, question }: { turn: ChatTurn; question?: number }) {
       </div>
       <div className="msg-body">
         <div className="msg-name">{mine ? "You" : question ? `Interviewer · Question ${question}` : "Interviewer"}</div>
-        <div className="bubble">
-          <Markdown text={turn.content.replace(END_MARKER, "").trim()} />
+        <div className={`bubble ${quick ? "quick" : ""}`}>
+          {quick ? <span>{quick}</span> : <Markdown text={turn.content.replace(END_MARKER, "").trim()} />}
         </div>
+        {actions}
       </div>
     </div>
   );
@@ -288,7 +295,23 @@ export default function InterviewChat({ row, topic }: { row: number; topic: stri
       <div className="room-main">
         <div className="chat">
           {turns.map((turn, i) => (
-            <Message key={i} turn={turn} question={numbers[i]} />
+            <Message
+              key={i}
+              turn={turn}
+              question={numbers[i]}
+              actions={
+                i === turns.length - 1 && numbers[i] && !busy && !result ? (
+                  <div className="bubble-actions">
+                    <button type="button" className="link-button" onClick={() => send(EXPLAIN)}>
+                      🔎 Explain this question
+                    </button>
+                    <button type="button" className="link-button" onClick={() => send(REPHRASE)}>
+                      🔁 Rephrase simply
+                    </button>
+                  </div>
+                ) : undefined
+              }
+            />
           ))}
           {busy && (
             <div className="msg theirs">
