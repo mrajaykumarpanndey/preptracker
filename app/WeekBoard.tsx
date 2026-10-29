@@ -54,6 +54,7 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
             {LABEL[k]}
           </span>
         ))}
+        <span className="week-hint">Study tiles open the study guide · interview tiles open the mock interview</span>
       </div>
 
       <div className="week-scroll">
@@ -105,7 +106,7 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
                   {d.blocks.map((b, i) => (
                     <Link
                       key={`${b.kind}-${b.row}-${i}`}
-                      href={`/interview/${b.row}`}
+                      href={b.kind === "interview" ? `/interview/${b.row}` : `/guide/${b.row}`}
                       className={`tile ${b.kind} ${b.end - b.start < 1 ? "short" : b.end - b.start < 1.6 ? "mid" : ""}`}
                       style={{ top: pct(b.start), height: `calc(${pct(b.end)} - ${pct(b.start)})` }}
                       title={`${LABEL[b.kind]}: ${b.topic}${b.category ? ` (${b.category})` : ""}, ${clock(b.start)}-${clock(b.end)}`}

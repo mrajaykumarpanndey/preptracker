@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { config } from "@/lib/config";
 import { REVIEWABLE, STATUS } from "@/lib/constants";
-import { hasData, listHistory, listRows, listWeeks } from "@/lib/store";
+import { hasData, listHistory, listRows, listStudy, listWeeks } from "@/lib/store";
+import { focusStats } from "@/lib/focus";
 import { localDay, parseLocal } from "@/lib/time";
 import Nav from "../Nav";
+import FocusSection from "./FocusSection";
 import {
   BurnUp,
   CategoryScores,
@@ -34,7 +36,9 @@ export default async function InsightsPage() {
     );
   }
 
-  const [rows, history, weeks] = await Promise.all([listRows(), listHistory(), listWeeks()]);
+  const [rows, history, weeks, study] = await Promise.all([listRows(), listHistory(), listWeeks(), listStudy()]);
+
+  const focus = focusStats(study, history);
   const today = localDay(new Date());
 
   // Progress by phase, in sheet order.
@@ -130,6 +134,10 @@ export default async function InsightsPage() {
         </div>
       </div>
 
+      <h2 className="section-title">Focus</h2>
+      <FocusSection focus={focus} />
+
+      <h2 className="section-title">Progress</h2>
       <div className="chart-grid">
         <ChartCard
           title="Progress by phase"

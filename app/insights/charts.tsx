@@ -302,3 +302,93 @@ export function WeeklyHours({ weeks }: { weeks: { weekStart: string; hours: numb
     </svg>
   );
 }
+
+/* ---------- Focused time per day (stacked columns: reading + interviews) ---------- */
+
+export type FocusDay = { day: string; reading: number; interview: number };
+
+/** Column path with a rounded top and a square base. */
+function column(x: number, w: number, top: number, base: number, round: boolean): string {
+  const r = round ? Math.min(4, w / 2, (base - top) / 2) : 0;
+  return `M${x},${base}V${top + r}q0,-${r} ${r},-${r}H${x + w - r}q${r},0 ${r},${r}V${base}Z`;
+}
+
+export function DailyFocus({ days }: { days: FocusDay[] }) {
+  const totals = days.map((d) => d.reading + d.interview);
+  const { max, step } = niceScale(Math.max(...totals, 1));
+  const slot = plotW / days.length;
+  const barW = Math.min(34, slot - 8);
+  const y = (v: number) => PAD.top + plotH - (v / max) * plotH;
+  const base = PAD.top + plotH;
+  const labelEvery = Math.ceil(days.length / 10);
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Focused minutes per day, reading and interviews">
+      <YGrid max={max} step={step} format={(v) => `${v}m`} />
+      {days.map((d, i) => {
+        const x = PAD.left + slot * i + (slot - barW) / 2;
+        const total = d.reading + d.interview;
+        const readingTop = y(d.reading);
+        const gap = d.reading > 0 && d.interview > 0 ? 2 : 0; // surface gap between stacked segments
+        return (
+          <g key={d.day}>
+            {d.reading > 0 && <path d={column(x, barW, readingTop, base, d.interview === 0)} className="fill s1" />}
+            {d.interview > 0 && <path d={column(x, barW, y(total), readingTop - gap, true)} className="fill s2" />}
+            {total > 0 && (
+              <text x={x + barW / 2} y={y(total) - 6} textAnchor="middle" className="value-label">
+                {Math.round(total)}
+              </text>
+            )}
+            {(i % labelEvery === 0 || i === days.length - 1) && (
+              <text x={x + barW / 2} y={H - 8} textAnchor="middle">
+                {shortDate.format(asDate(d.day))}
+              </text>
+            )}
+            <rect x={PAD.left + slot * i} y={PAD.top} width={slot} height={plotH} className="hit">
+              <title>{`${shortDate.format(asDate(d.day))}: ${Math.round(d.reading)} min reading, ${Math.round(d.interview)} min interviews`}</title>
+            </rect>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/* ---------- When you focus best (minutes by hour of the study day) ---------- */
+
+export function FocusByHour({ hours }: { hours: { hour: number; minutes: number }[] }) {
+  const { max, step } = niceScale(Math.max(...hours.map((h) => h.minutes), 1));
+  const slot = plotW / hours.length;
+  const barW = Math.min(26, slot - 6);
+  const y = (v: number) => PAD.top + plotH - (v / max) * plotH;
+  const base = PAD.top + plotH;
+  const best = hours.reduce((a, b) => (b.minutes > a.minutes ? b : a), hours[0]);
+  const label = (h: number) => `${String(h % 24).padStart(2, "0")}:00`;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Focused minutes by hour of day">
+      <YGrid max={max} step={step} format={(v) => `${v}m`} />
+      {hours.map((h, i) => {
+        const x = PAD.left + slot * i + (slot - barW) / 2;
+        return (
+          <g key={h.hour}>
+            {h.minutes > 0 && <path d={column(x, barW, y(h.minutes), base, true)} className="fill s1" />}
+            {h === best && h.minutes > 0 && (
+              <text x={x + barW / 2} y={y(h.minutes) - 6} textAnchor="middle" className="value-label">
+                Best
+              </text>
+            )}
+            {i % 2 === 0 && (
+              <text x={x + barW / 2} y={H - 8} textAnchor="middle">
+                {label(h.hour)}
+              </text>
+            )}
+            <rect x={PAD.left + slot * i} y={PAD.top} width={slot} height={plotH} className="hit">
+              <title>{`${label(h.hour)}-${label(h.hour + 1)}: ${Math.round(h.minutes)} focused minutes`}</title>
+            </rect>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}

@@ -98,7 +98,7 @@ function timetableHtml(rows: Row[], today: string): string {
         color: SESSION[b.kind].color,
         title: b.kind === "interview" || !b.note ? b.topic : `${b.note}: ${b.topic}`,
         subtitle: [SESSION[b.kind].label, b.category].filter(Boolean).join(" · "),
-        href: `${config.appUrl}/interview/${b.row}`,
+        href: `${config.appUrl}/${b.kind === "interview" ? "interview" : "guide"}/${b.row}`,
       })),
   );
   const more = plan.more > 0 ? p(`<span style="color:#8a8f98">+${plan.more} more topics due today - see the tracker.</span>`) : "";

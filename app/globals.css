@@ -22,8 +22,9 @@
   --radius: 14px;
 }
 
+/* Dark theme: follows the system unless the toggle picked light; data-theme="dark" forces it. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #111214;
     --surface: #1a1b1f;
     --surface-2: #222328;
@@ -46,6 +47,28 @@
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 }
+:root[data-theme="dark"] {
+    --bg: #111214;
+    --surface: #1a1b1f;
+    --surface-2: #222328;
+    --text: #e8e9ec;
+    --muted: #9095a0;
+    --border: #2c2e34;
+    --accent: #7c9cf5;
+    --accent-soft: #1e2640;
+    --accent-text: #b4c6ff;
+    --on-accent: #0d1324;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --grid: #26282d;
+    --good: #4cc38a;
+    --good-soft: #15291f;
+    --warn: #ecc94b;
+    --bad: #f87171;
+    --bad-soft: #2c1517;
+    --code-bg: #26282e;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
 
 * { box-sizing: border-box; }
 
@@ -311,14 +334,21 @@ td.action { text-align: right; white-space: nowrap; }
   --tile-retry: #c53030; --tile-retry-side: #8f1f1f;
   --tile-ahead: #e9effb; --tile-ahead-side: #b9c9ec; --tile-ahead-text: #1c4f9c;
 }
+/* Dark theme: follows the system unless the toggle picked light; data-theme="dark" forces it. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --tile-study: #3176cc; --tile-study-side: #1d4f8f;
     --tile-interview: #c4511f; --tile-interview-side: #7d300d;
     --tile-retry: #c23a3a; --tile-retry-side: #7c1f1f;
     --tile-ahead: #232c40; --tile-ahead-side: #141a28; --tile-ahead-text: #b4c6ff;
   }
 }
+:root[data-theme="dark"] {
+    --tile-study: #3176cc; --tile-study-side: #1d4f8f;
+    --tile-interview: #c4511f; --tile-interview-side: #7d300d;
+    --tile-retry: #c23a3a; --tile-retry-side: #7c1f1f;
+    --tile-ahead: #232c40; --tile-ahead-side: #141a28; --tile-ahead-text: #b4c6ff;
+  }
 
 .week { margin: 8px 0 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 .week-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; cursor: pointer; list-style: none; }
@@ -486,3 +516,24 @@ td.action { text-align: right; white-space: nowrap; }
 .build-next { border-left: 4px solid var(--good); background: var(--good-soft); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; }
 .build-next p { margin: 0; }
 .build-next .eyebrow { color: var(--good); margin-bottom: 4px; }
+
+/* Reading tracker on the study guide */
+.read-progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 20; background: transparent; }
+.read-progress i { display: block; height: 100%; background: var(--accent); transition: width .2s ease; }
+.reading-pill { position: fixed; right: 18px; bottom: 18px; z-index: 20; box-shadow: var(--shadow); }
+@media (max-width: 560px) { .reading-pill { left: 12px; right: 12px; bottom: 12px; justify-content: center; } }
+.week-hint { margin-left: auto; }
+.section-title { font-size: 15px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 26px 0 0; }
+
+/* Theme toggle */
+.topbar { flex-wrap: wrap; }
+.topbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.theme-toggle { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
+.theme-toggle button {
+  font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: none;
+  background: transparent; color: var(--muted);
+}
+.theme-toggle button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.theme-toggle button:hover:not(.active) { color: var(--text); opacity: 1; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }

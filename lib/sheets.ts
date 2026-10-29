@@ -20,7 +20,7 @@ export type Row = Record<Field, string> & {
   completed?: string; // "YYYY-MM-DD" when the topic was marked Done (Excel only)
 };
 
-export type HistoryEntry = { date: string; topic: string; score: number };
+export type HistoryEntry = { date: string; topic: string; score: number; minutes?: number };
 
 export type RowUpdate = { row: number; fields: Partial<Record<Field, string>> };
 
@@ -82,9 +82,9 @@ export async function updateRows(updates: RowUpdate[]): Promise<void> {
 }
 
 export async function listHistory(): Promise<HistoryEntry[]> {
-  const data = await call<{ values?: string[][] }>(`/values/${range(`${config.historyTab}!A2:C`)}`);
+  const data = await call<{ values?: string[][] }>(`/values/${range(`${config.historyTab}!A2:G`)}`);
   return (data.values ?? [])
-    .map(([date = "", topic = "", score = ""]) => ({ date, topic, score: Number(score) }))
+    .map(([date = "", topic = "", score = "", , , , minutes = ""]) => ({ date, topic, score: Number(score), minutes: Number(minutes) || 0 }))
     .filter((entry) => entry.date && Number.isFinite(entry.score));
 }
 

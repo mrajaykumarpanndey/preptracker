@@ -15,6 +15,15 @@ const TOPICS = "Topic Tracker";
 const ROADMAP = "Roadmap";
 const HISTORY = "Interview History";
 const WEEKLY_LOG = "Weekly Log";
+const STUDY_LOG = "Study Log";
+const STUDY_LOG_COLUMNS = [
+  { header: "Session", width: 14 },
+  { header: "Started", width: 17 },
+  { header: "Topic", width: 34 },
+  { header: "Activity", width: 10 },
+  { header: "Focused minutes", width: 10 },
+  { header: "Read %", width: 8 },
+];
 const STATUS_LIST = [STATUS.NOT_STARTED, STATUS.IN_PROGRESS, STATUS.READY, STATUS.NEEDS_WORK, STATUS.DONE];
 
 const EXTRA_COLUMNS = [
@@ -159,7 +168,8 @@ function parseHistory(wb: ExcelJS.Workbook): HistoryEntry[] {
     if (n === 1) return;
     const date = text(row.getCell(1).value);
     const score = Number(text(row.getCell(3).value));
-    if (date && Number.isFinite(score)) entries.push({ date, topic: text(row.getCell(2).value), score });
+    const minutes = Number(text(row.getCell(7).value)) || 0;
+    if (date && Number.isFinite(score)) entries.push({ date, topic: text(row.getCell(2).value), score, minutes });
   });
   return entries;
 }
@@ -181,14 +191,35 @@ function parseWeeklyLog(wb: ExcelJS.Workbook): WeekLog[] {
   return weeks;
 }
 
-type Parsed = { mtimeMs: number; rows: Row[]; history: HistoryEntry[]; weeks: WeekLog[] };
+export type StudySession = { session: string; started: string; topic: string; activity: string; minutes: number; readPercent: number };
+
+/** Study Log sheet: one row per reading session, updated in place while you read. */
+function parseStudyLog(wb: ExcelJS.Workbook): StudySession[] {
+  const sessions: StudySession[] = [];
+  wb.getWorksheet(STUDY_LOG)?.eachRow((row, n) => {
+    if (n === 1) return;
+    const started = text(row.getCell(2).value);
+    if (!started) return;
+    sessions.push({
+      session: text(row.getCell(1).value),
+      started,
+      topic: text(row.getCell(3).value),
+      activity: text(row.getCell(4).value),
+      minutes: Number(text(row.getCell(5).value)) || 0,
+      readPercent: Number(text(row.getCell(6).value)) || 0,
+    });
+  });
+  return sessions;
+}
+
+type Parsed = { mtimeMs: number; rows: Row[]; history: HistoryEntry[]; weeks: WeekLog[]; study: StudySession[] };
 let cache: Parsed | undefined;
 
 async function parsed(): Promise<Parsed> {
   const mtimeMs = statSync(excelPath()).mtimeMs;
   if (cache?.mtimeMs !== mtimeMs) {
     const wb = await load();
-    cache = { mtimeMs, rows: parseRows(wb), history: parseHistory(wb), weeks: parseWeeklyLog(wb) };
+    cache = { mtimeMs, rows: parseRows(wb), history: parseHistory(wb), weeks: parseWeeklyLog(wb), study: parseStudyLog(wb) };
   }
   return cache;
 }
@@ -203,6 +234,34 @@ export async function listExcelHistory(): Promise<HistoryEntry[]> {
 
 export async function listExcelWeeks(): Promise<WeekLog[]> {
   return (await parsed()).weeks;
+}
+
+export async function listExcelStudy(): Promise<StudySession[]> {
+  return (await parsed()).study;
+}
+
+/** Adds or updates one reading session (keyed by its session id). */
+export function upsertExcelStudy(entry: StudySession): Promise<void> {
+  return exclusive(async () => {
+    const wb = await load();
+    prepare(wb);
+    let sheet = wb.getWorksheet(STUDY_LOG);
+    if (!sheet) {
+      sheet = wb.addWorksheet(STUDY_LOG);
+      sheet.columns = STUDY_LOG_COLUMNS;
+      const headerStyle = wb.getWorksheet(TOPICS)!.getCell("I1").style;
+      sheet.getRow(1).eachCell((cell) => (cell.style = structuredClone(headerStyle)));
+      sheet.views = [{ state: "frozen", ySplit: 1 }];
+    }
+    let target: ExcelJS.Row | undefined;
+    sheet.eachRow((row, n) => {
+      if (n > 1 && text(row.getCell(1).value) === entry.session) target = row;
+    });
+    const values = [entry.session, entry.started, entry.topic, entry.activity, entry.minutes, entry.readPercent];
+    if (target) values.forEach((v, i) => (target!.getCell(i + 1).value = v));
+    else sheet.addRow(values);
+    await save(wb);
+  });
 }
 
 // Writes are serialized so two requests never save over each other.

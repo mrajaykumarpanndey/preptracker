@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getGuide } from "@/lib/guide";
 import { getRow } from "@/lib/store";
+import ReadingTracker from "./ReadingTracker";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
@@ -37,6 +38,7 @@ export default async function GuidePage({ params }: { params: Promise<{ row: str
 
   return (
     <article className="guide">
+      <ReadingTracker row={row.row} />
       <Link href="/" className="back">
         &larr; Back to tracker
       </Link>

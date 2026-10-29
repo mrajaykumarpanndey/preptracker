@@ -4,14 +4,17 @@ import {
   excelExists,
   listExcelHistory,
   listExcelRows,
+  listExcelStudy,
   listExcelWeeks,
   updateExcelRows,
+  upsertExcelStudy,
+  type StudySession,
   type WeekLog,
 } from "./excel";
 import * as sheets from "./sheets";
 import type { Field, HistoryEntry, Row, RowUpdate } from "./sheets";
 
-export type { Field, HistoryEntry, Row, RowUpdate, WeekLog };
+export type { Field, HistoryEntry, Row, RowUpdate, StudySession, WeekLog };
 
 // Where the tracker data lives: a local Excel file (default when it exists) or a Google Sheet.
 export type DataSource = "excel" | "google";
@@ -50,6 +53,15 @@ export function listHistory(): Promise<HistoryEntry[]> {
 /** Study hours per week (Excel "Weekly Log" sheet only). */
 export function listWeeks(): Promise<WeekLog[]> {
   return dataSource() === "excel" ? listExcelWeeks() : Promise.resolve([]);
+}
+
+/** Reading sessions from the Study Log (Excel tracker only). */
+export function listStudy(): Promise<StudySession[]> {
+  return dataSource() === "excel" ? listExcelStudy() : Promise.resolve([]);
+}
+
+export function recordStudy(entry: StudySession): Promise<void> {
+  return dataSource() === "excel" ? upsertExcelStudy(entry) : Promise.resolve();
 }
 
 export function appendHistory(values: string[]): Promise<void> {
