@@ -537,3 +537,33 @@ td.action { text-align: right; white-space: nowrap; }
 .theme-toggle button:hover:not(.active) { color: var(--text); opacity: 1; }
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] { color-scheme: dark; }
+
+/* Guide editing */
+.guide-toolbar { position: sticky; top: 3px; z-index: 15; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 18px 0 6px; padding: 8px 0; background: var(--bg); }
+.guide-editing .editable { outline: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 3px; border-radius: 4px; cursor: text; }
+.guide-editing .editable:focus { outline: 2px solid var(--accent); background: var(--surface); }
+.edit-item { position: relative; padding-right: 30px; }
+.remove-item {
+  position: absolute; top: 0; right: 0; width: 22px; height: 22px; padding: 0; border-radius: 6px; font-size: 15px; line-height: 1;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
+}
+.flow-step .remove-item { top: 4px; right: 4px; }
+.remove-item:hover:not(:disabled) { color: var(--bad); border-color: var(--bad); opacity: 1; }
+.add-item { margin-top: 8px; font-size: 13px; padding: 5px 12px; background: transparent; color: var(--accent); border: 1px dashed var(--accent); }
+button.danger { color: var(--bad); border-color: var(--bad); }
+.danger-text { color: var(--bad); }
+.section-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.point { display: grid; grid-template-columns: 28px 1fr; gap: 12px; }
+.point > div { display: flex; flex-direction: column; gap: 2px; line-height: 1.65; }
+.point-num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 13px; }
+.guide-points { display: flex; flex-direction: column; gap: 14px; }
+.numbered { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; line-height: 1.7; }
+.numbered-item { display: grid; grid-template-columns: 20px 1fr; gap: 6px; }
+.pitfall, .recap-item { display: grid; grid-template-columns: 18px 1fr; gap: 6px; line-height: 1.7; }
+.pitfall > span:first-child { color: var(--bad); font-weight: 700; }
+.guide-pitfalls { display: flex; flex-direction: column; gap: 6px; padding: 0; }
+.guide-recap { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; }
+.qa-edit { display: flex; flex-direction: column; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+.qa-edit p { margin: 0; color: var(--muted); }
+.code-editor { font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code-bg); border-radius: 10px; padding: 14px 16px; resize: vertical; }
+.build dl > div { margin: 0; }

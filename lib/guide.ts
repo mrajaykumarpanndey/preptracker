@@ -52,7 +52,8 @@ const Guide = z.object({
   recap: z.array(z.string()).describe("Three to five one-line takeaways"),
 });
 
-export type Guide = z.infer<typeof Guide> & { topic: string; category?: string; generatedAt: string };
+export type GuideContent = z.infer<typeof Guide>;
+export type Guide = GuideContent & { topic: string; category?: string; generatedAt: string; editedAt?: string };
 
 const guidesDir = () => path.join(process.cwd(), "data", "guides");
 const slug = (row: Row) =>
@@ -90,6 +91,31 @@ Only include a diagram or code when it makes the idea clearer. Use plain ASCII t
   return { ...response.parsed_output, topic: row.topic, category: row.category, generatedAt: new Date().toISOString() };
 }
 
+function write(row: Row, guide: Guide): Guide {
+  mkdirSync(guidesDir(), { recursive: true });
+  writeFileSync(fileFor(row), JSON.stringify(guide, null, 2));
+  return guide;
+}
+
+/** Saves your edits; the PDF and email attachments are built from this from now on. */
+export function saveGuide(row: Row, content: unknown): Guide {
+  const parsed = Guide.safeParse(content);
+  if (!parsed.success) throw new Error(`The guide is missing something: ${parsed.error.issues[0]?.path.join(".") || "content"}`);
+  const previous = cachedGuide(row);
+  return write(row, {
+    ...parsed.data,
+    topic: row.topic,
+    category: row.category,
+    generatedAt: previous?.generatedAt ?? new Date().toISOString(),
+    editedAt: new Date().toISOString(),
+  });
+}
+
+/** Throws away the saved guide (including edits) and writes a fresh one. */
+export async function regenerateGuide(row: Row): Promise<Guide> {
+  return write(row, await generate(row));
+}
+
 const inFlight = new Map<string, Promise<Guide>>();
 
 /** Returns the topic's guide, generating and caching it the first time. */
@@ -100,11 +126,7 @@ export function getGuide(row: Row): Promise<Guide> {
   let pending = inFlight.get(key);
   if (!pending) {
     pending = generate(row)
-      .then((guide) => {
-        mkdirSync(guidesDir(), { recursive: true });
-        writeFileSync(fileFor(row), JSON.stringify(guide, null, 2));
-        return guide;
-      })
+      .then((guide) => write(row, guide))
       .finally(() => inFlight.delete(key));
     inFlight.set(key, pending);
   }
