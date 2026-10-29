@@ -14,4 +14,14 @@ export const REVIEWABLE: string[] = [STATUS.IN_PROGRESS, STATUS.READY, STATUS.NE
 // The interviewer puts this on its last message when it has enough signal to score.
 export const END_MARKER = "[[INTERVIEW_COMPLETE]]";
 
-export type ChatTurn = { role: "user" | "assistant"; content: string };
+/** An interviewer message split into parts so the page can lay it out clearly. */
+export type InterviewerView = {
+  reaction: string;
+  context: string;
+  question: string;
+  parts: string[];
+  followUp: boolean;
+  done: boolean;
+};
+
+export type ChatTurn = { role: "user" | "assistant"; content: string; view?: InterviewerView };

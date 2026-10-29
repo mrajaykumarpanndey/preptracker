@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { END_MARKER, type ChatTurn } from "./constants";
+import { END_MARKER, type ChatTurn, type InterviewerView } from "./constants";
 
 const MODEL = "claude-opus-5-5";
 
@@ -23,29 +23,52 @@ How to run the interview:
 - If the candidate asks for a hint, give one small nudge without the answer, then let them try. If they ask you to rephrase, rephrase the same question more simply. If they ask you to explain the question in more detail, explain what you are asking and why, define any terms in it, and give a small concrete scenario or example input - without revealing the answer - then ask the same question again. If they skip, acknowledge briefly and move to the next question.
 - If an answer is vague or wrong, ask one short follow-up to probe before moving on. Don't teach or reveal answers during the interview - feedback comes afterwards.
 - Cover the key points across roughly 6-8 questions.
-- Keep each message short, like a real interviewer speaking. Write plain conversational text: no headings or "Question 1:" labels. Use \`backticks\` only for code, and a fenced code block only when showing code.
-- When you have enough signal, thank the candidate and end that message with ${END_MARKER} on its own line.`;
+- Keep each message short, like a real interviewer speaking. Use \`backticks\` for code and a fenced code block when showing more than one line of code.
+
+Every reply is split into fields:
+- reaction: at most one short sentence reacting to the candidate's last message (empty for the very first question). Don't reveal answers.
+- context: optional setup the question needs - a scenario, a code snippet in a fenced block, or the hint/explanation they asked for. Empty if not needed.
+- question: the one main question, in one or two sentences. Never put the question inside context.
+- parts: if you want two or three specific things answered, list them here as short sub-questions (and keep "question" as the overall ask); otherwise empty.
+- followUp: true when this re-asks, probes or narrows the previous question (including after a hint or explanation) rather than starting a new one.
+- done: true only when you have enough signal to finish; then put a short thank-you in "question" and leave parts empty.`;
 }
 
-function textOf(content: { type: string; text?: string }[]): string {
-  return content.flatMap((block) => (block.type === "text" && block.text ? [block.text] : [])).join("\n").trim();
+const InterviewerTurn = z.object({
+  reaction: z.string(),
+  context: z.string(),
+  question: z.string(),
+  parts: z.array(z.string()),
+  followUp: z.boolean(),
+  done: z.boolean(),
+});
+
+/** The same message as plain text - kept in the transcript the interviewer and grader read. */
+export function viewToText(view: InterviewerView): string {
+  const parts = view.parts.map((p, i) => `(${String.fromCharCode(97 + i)}) ${p}`).join("\n");
+  return [view.reaction, view.context, view.question, parts, view.done ? END_MARKER : ""].filter(Boolean).join("\n\n");
 }
 
-export async function nextInterviewTurn(topic: string, keyPoints: string, turns: ChatTurn[]): Promise<string> {
-  const response = await client.beta.messages.create({
+export async function nextInterviewTurn(
+  topic: string,
+  keyPoints: string,
+  turns: ChatTurn[],
+): Promise<{ text: string; view: InterviewerView }> {
+  const response = await client.messages.parse({
     model: MODEL,
     max_tokens: 16000,
-    output_config: { effort: "medium" },
-    // If a safety classifier declines, the API retries on a fallback model in the same call.
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
+    output_config: { effort: "medium", format: zodOutputFormat(InterviewerTurn) },
     system: interviewerPrompt(topic, keyPoints),
-    messages: [{ role: "user", content: "I'm ready. Please start the interview." }, ...turns],
+    messages: [
+      { role: "user", content: "I'm ready. Please start the interview." },
+      ...turns.map(({ role, content }) => ({ role, content })),
+    ],
   });
-  if (response.stop_reason === "refusal") {
-    throw new Error("The interviewer declined to continue. Try rephrasing your last answer.");
+  if (response.stop_reason === "refusal" || !response.parsed_output) {
+    throw new Error("The interviewer couldn't continue. Try rephrasing your last answer.");
   }
-  return textOf(response.content);
+  const view = response.parsed_output;
+  return { text: viewToText(view), view };
 }
 
 const Evaluation = z.object({
@@ -63,6 +86,7 @@ export type Evaluation = z.infer<typeof Evaluation>;
 
 export async function evaluateInterview(topic: string, keyPoints: string, turns: ChatTurn[]): Promise<Evaluation> {
   const transcript = turns
+    .map((t) => ({ ...t, content: t.view ? viewToText(t.view) : t.content }))
     .map((t) => `${t.role === "assistant" ? "Interviewer" : "Candidate"}: ${t.content.replace(END_MARKER, "")}`)
     .join("\n\n");
 

@@ -13,11 +13,11 @@ export async function POST(req: Request) {
   if (!row) return NextResponse.json({ error: "Topic not found in the sheet" }, { status: 404 });
 
   try {
-    const reply = await nextInterviewTurn(row.topic, interviewContext(row), turns);
+    const { text: reply, view } = await nextInterviewTurn(row.topic, interviewContext(row), turns);
     if (turns.length === 0 && (!row.status || row.status === STATUS.NOT_STARTED)) {
       await updateRow(row.row, { status: STATUS.IN_PROGRESS });
     }
-    return NextResponse.json({ reply });
+    return NextResponse.json({ reply, view });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });

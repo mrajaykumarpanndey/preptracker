@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { END_MARKER, STATUS, type ChatTurn } from "@/lib/constants";
+import { END_MARKER, STATUS, type ChatTurn, type InterviewerView } from "@/lib/constants";
 import { duration, useFocusTimer } from "../../useFocusTimer";
 import Markdown from "./Markdown";
 
@@ -48,8 +48,10 @@ function questionNumbers(turns: ChatTurn[]): (number | undefined)[] {
       advance = movesOn(t);
       return undefined;
     }
-    if (t.content.includes(END_MARKER)) return undefined;
-    if (advance || n === 0) n++;
+    if (t.content.includes(END_MARKER) || t.view?.done) return undefined;
+    // The interviewer marks follow-ups itself; older messages fall back to what the candidate sent.
+    const isNew = t.view ? !t.view.followUp : advance;
+    if (isNew || n === 0) n++;
     advance = false;
     return n;
   });
@@ -68,6 +70,41 @@ async function post<T>(url: string, body: unknown): Promise<T> {
   return data;
 }
 
+/** Reaction, then context, then the question in its own box with lettered parts. */
+function InterviewerBody({ view, question }: { view: InterviewerView; question?: number }) {
+  return (
+    <>
+      {view.reaction && <p className="reaction">{view.reaction}</p>}
+      {view.context && (
+        <div className="q-context">
+          <Markdown text={view.context} />
+        </div>
+      )}
+      {view.question && (
+        <div className={view.done ? "q-closing" : "q-box"}>
+          {!view.done && question && (
+            <span className="q-label">
+              Question {question}
+              {view.followUp ? " · follow-up" : ""}
+            </span>
+          )}
+          <Markdown text={view.question} />
+          {view.parts.length > 0 && (
+            <ol className="q-parts">
+              {view.parts.map((part, i) => (
+                <li key={i}>
+                  <span className="q-part-letter">{String.fromCharCode(97 + i)}</span>
+                  <Markdown text={part} />
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 function Message({ turn, question, actions }: { turn: ChatTurn; question?: number; actions?: ReactNode }) {
   const mine = turn.role === "user";
   const quick = mine ? SHORT_LABEL.get(turn.content) : undefined;
@@ -77,9 +114,17 @@ function Message({ turn, question, actions }: { turn: ChatTurn; question?: numbe
         {mine ? "You" : "AI"}
       </div>
       <div className="msg-body">
-        <div className="msg-name">{mine ? "You" : question ? `Interviewer · Question ${question}` : "Interviewer"}</div>
-        <div className={`bubble ${quick ? "quick" : ""}`}>
-          {quick ? <span>{quick}</span> : <Markdown text={turn.content.replace(END_MARKER, "").trim()} />}
+        <div className="msg-name">
+          {mine ? "You" : question ? `Interviewer · Question ${question}${turn.view?.followUp ? " · follow-up" : ""}` : "Interviewer"}
+        </div>
+        <div className={`bubble ${quick ? "quick" : ""} ${turn.view ? "structured" : ""}`}>
+          {quick ? (
+            <span>{quick}</span>
+          ) : turn.view ? (
+            <InterviewerBody view={turn.view} question={question} />
+          ) : (
+            <Markdown text={turn.content.replace(END_MARKER, "").trim()} />
+          )}
         </div>
         {actions}
       </div>
@@ -194,17 +239,19 @@ export default function InterviewChat({
   const input = useRef<HTMLTextAreaElement>(null);
 
   const finished = turns.some((t) => t.role === "assistant" && t.content.includes(END_MARKER));
-  const answered = turns.filter(movesOn).length;
   const numbers = questionNumbers(turns);
   const questionCount = Math.max(0, ...numbers.map((n) => n ?? 0));
+  // Questions you've moved past (answered or skipped); the current one counts once you've replied to it.
+  const lastAssistant = turns.map((t) => t.role).lastIndexOf("assistant");
+  const answered = Math.max(0, finished || result ? questionCount : questionCount - (lastAssistant === turns.length - 1 ? 1 : 0));
   const words = draft.trim() ? draft.trim().split(/\s+/).length : 0;
 
   async function ask(history: ChatTurn[]) {
     setBusy(true);
     setError("");
     try {
-      const { reply } = await post<{ reply: string }>("/api/interview", { row, turns: history });
-      setTurns([...history, { role: "assistant", content: reply }]);
+      const { reply, view } = await post<{ reply: string; view: InterviewerView }>("/api/interview", { row, turns: history });
+      setTurns([...history, { role: "assistant", content: reply, view }]);
       const last = history[history.length - 1];
       if (!last || movesOn(last)) questionStartedAt.current = timerRef.current; // a new question, not a hint
     } catch (e) {

@@ -639,3 +639,18 @@ td.action > a { display: block; width: fit-content; margin: 0 0 6px auto; }
 td.action .guide-link { margin-right: 0; text-align: right; }
 .table-wrap th, .table-wrap td { padding-left: 10px; padding-right: 10px; }
 .status-select select.badge { max-width: 150px; }
+
+/* Structured interviewer messages */
+.bubble.structured { display: flex; flex-direction: column; gap: 12px; }
+.reaction { margin: 0; font-size: 14px; color: var(--muted); font-style: italic; }
+.reaction::before { content: "✓ "; font-style: normal; color: var(--good); font-weight: 700; }
+.q-context { font-size: 14.5px; }
+.q-box { position: relative; padding: 14px 16px 12px; border-radius: 10px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.q-box .md p { font-size: 15.5px; font-weight: 600; color: var(--text); }
+.q-label { display: inline-block; margin-bottom: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent-text); }
+.q-parts { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px dashed color-mix(in srgb, var(--accent) 35%, transparent); display: flex; flex-direction: column; gap: 8px; }
+.q-parts li { display: grid; grid-template-columns: 24px 1fr; gap: 8px; align-items: start; }
+.q-parts .md p { font-weight: 500; font-size: 14.5px; }
+.q-part-letter { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--accent); color: var(--on-accent); }
+.q-closing .md p { font-weight: 600; }
+.msg.theirs .bubble.structured { border-left-width: 1px; }
