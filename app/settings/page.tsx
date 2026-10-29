@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { excelExists, excelPath } from "@/lib/excel";
 import { oauthConfigured, oauthConnected } from "@/lib/google";
 import { dataSource } from "@/lib/store";
@@ -16,8 +15,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <Link href="/">&larr; Tracker</Link>
-      <h1 style={{ marginTop: 12 }}>Settings</h1>
+      <h1 className="page-title">Settings</h1>
 
       {ok && <div className="card notice">{ok}</div>}
       {error && <div className="card error">{error}</div>}

@@ -4,7 +4,6 @@ import { REVIEWABLE, STATUS } from "@/lib/constants";
 import { hasData, listHistory, listRows, listStudy, listWeeks } from "@/lib/store";
 import { focusStats } from "@/lib/focus";
 import { localDay, parseLocal } from "@/lib/time";
-import Nav from "../Nav";
 import FocusSection from "./FocusSection";
 import {
   BurnUp,
@@ -28,7 +27,7 @@ export default async function InsightsPage() {
   if (!hasData()) {
     return (
       <>
-        <Nav active="/insights" />
+        <h1 className="page-title">Progress</h1>
         <div className="card" style={{ marginTop: 16 }}>
           Add your tracker on the <Link href="/settings">Settings</Link> page first.
         </div>
@@ -99,7 +98,7 @@ export default async function InsightsPage() {
 
   return (
     <>
-      <Nav active="/insights" />
+      <h1 className="page-title">Progress</h1>
 
       <div className="stats">
         <div className="card stat">

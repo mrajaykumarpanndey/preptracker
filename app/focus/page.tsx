@@ -2,7 +2,6 @@ import Link from "next/link";
 import { focusStats, minutesLabel } from "@/lib/focus";
 import { hasData, listHistory, listRows, listStudy } from "@/lib/store";
 import FocusSection from "../insights/FocusSection";
-import Nav from "../Nav";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +11,7 @@ export default async function FocusPage() {
   if (!hasData()) {
     return (
       <>
-        <Nav active="/focus" />
+        <h1 className="page-title">Focus</h1>
         <div className="card" style={{ marginTop: 16 }}>
           Add your tracker on the <Link href="/settings">Settings</Link> page first.
         </div>
@@ -25,7 +24,7 @@ export default async function FocusPage() {
 
   return (
     <>
-      <Nav active="/focus" />
+      <h1 className="page-title">Focus</h1>
       <p className="muted" style={{ marginTop: 16 }}>
         Time counts only while a study guide or interview is open and in focus. Open a study tile on your timetable to
         start a reading session.

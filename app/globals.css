@@ -654,3 +654,26 @@ td.action .guide-link { margin-right: 0; text-align: right; }
 .q-part-letter { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--accent); color: var(--on-accent); }
 .q-closing .md p { font-weight: 600; }
 .msg.theirs .bubble.structured { border-left-width: 1px; }
+
+/* ---------- Shared site header ---------- */
+.site-header {
+  position: sticky; top: 0; z-index: 30;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(160%) blur(10px); -webkit-backdrop-filter: saturate(160%) blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.site-header-inner { max-width: 1080px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 17px; color: var(--text); text-decoration: none; letter-spacing: -0.01em; }
+.brand-mark { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font-size: 15px; font-weight: 800; }
+.site-header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.page-title { font-size: 26px; margin: 0 0 4px; }
+main { padding-top: 22px; }
+/* Sticky elements sit below the header. */
+.guide-toolbar { top: 58px; }
+.room-side { top: 74px; }
+.read-progress { top: 0; z-index: 40; }
+@media (max-width: 640px) {
+  .site-header { position: static; }
+  .site-header-inner { justify-content: center; }
+  .guide-toolbar { top: 3px; }
+}

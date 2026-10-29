@@ -1,6 +1,5 @@
 import Link from "next/link";
 import FeedbackDetails from "./FeedbackDetails";
-import Nav from "./Nav";
 import StatusSelect from "./StatusSelect";
 import WeekBoard from "./WeekBoard";
 import { config } from "@/lib/config";
@@ -79,7 +78,7 @@ function Feedback({ row }: { row: Row }) {
 }
 
 function Header() {
-  return <Nav active="/" />;
+  return <h1 className="page-title">Tracker</h1>;
 }
 
 function inView(row: Row, view: View, now: number): boolean {
