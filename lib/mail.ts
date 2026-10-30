@@ -61,7 +61,7 @@ export function buildInvite(opts: {
     "BEGIN:VALARM",
     "TRIGGER:-PT15M",
     "ACTION:DISPLAY",
-    "DESCRIPTION:Interview starts in 15 minutes",
+    "DESCRIPTION:Quiz starts in 15 minutes",
     "END:VALARM",
     "END:VEVENT",
     "END:VCALENDAR",

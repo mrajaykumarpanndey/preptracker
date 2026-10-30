@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 
-// Small renderer for the subset of Markdown the interviewer uses: paragraphs, lists,
+// Small renderer for the subset of Markdown quiz questions use: paragraphs, lists,
 // fenced code blocks, `code`, **bold** and *italic*. Builds React nodes, never raw HTML.
 
 function inline(text: string): ReactNode[] {

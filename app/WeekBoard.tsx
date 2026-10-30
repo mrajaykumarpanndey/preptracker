@@ -2,9 +2,9 @@ import Link from "next/link";
 import { clock, currentStudyDay, daySchedule, FIRST_HOUR, LAST_HOUR, planDays, type Kind } from "@/lib/timetable";
 import type { Row } from "@/lib/store";
 
-// A week planner: study sessions and mock interviews for the next 7 days. Collapsed by default;
+// A week planner: study sessions and quizzes for the next 7 days. Collapsed by default;
 // renders on the server with plain HTML/CSS. The plan itself comes from lib/timetable, which the
-// interview invites and morning email also use.
+// quiz invites and morning email also use.
 
 const DAYS = 7;
 
@@ -16,7 +16,7 @@ const LABEL: Record<Kind, string> = {
   study: "Study",
   retry: "Revise & retry",
   ahead: "Get ahead",
-  interview: "Mock interview",
+  quiz: "Quiz",
 };
 
 export default function WeekBoard({ rows }: { rows: Row[] }) {
@@ -25,9 +25,9 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
   const hours = Array.from({ length: LAST_HOUR - FIRST_HOUR + 1 }, (_, i) => FIRST_HOUR + i);
   const pct = (h: number) => `${((h - FIRST_HOUR) / (LAST_HOUR - FIRST_HOUR)) * 100}%`;
 
-  const studyCount = days.reduce((n, d) => n + d.blocks.filter((b) => b.kind !== "interview").length, 0);
-  const interviewCount = days.reduce((n, d) => n + d.blocks.filter((b) => b.kind === "interview").length, 0);
-  const todayBlocks = days[0].blocks.filter((b) => b.kind !== "interview").length;
+  const studyCount = days.reduce((n, d) => n + d.blocks.filter((b) => b.kind !== "quiz").length, 0);
+  const quizCount = days.reduce((n, d) => n + d.blocks.filter((b) => b.kind === "quiz").length, 0);
+  const todayBlocks = days[0].blocks.filter((b) => b.kind !== "quiz").length;
 
   return (
     <details className="week">
@@ -40,7 +40,7 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
               : "A free day - pick a Get ahead tile and bank some progress."}
           </h2>
           <p className="muted small">
-            {studyCount} study sessions and {interviewCount} mock interview{interviewCount === 1 ? "" : "s"} planned over the
+            {studyCount} study sessions and {quizCount} {quizCount === 1 ? "quiz" : "quizzes"} planned over the
             next 7 days. Click to open the timetable.
           </p>
         </div>
@@ -48,13 +48,13 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
       </summary>
 
       <div className="week-legend">
-        {(["study", "retry", "ahead", "interview"] as Kind[]).map((k) => (
+        {(["study", "retry", "ahead", "quiz"] as Kind[]).map((k) => (
           <span key={k}>
             <i className={`key ${k}`} aria-hidden />
             {LABEL[k]}
           </span>
         ))}
-        <span className="week-hint">Study tiles open the study guide · interview tiles open the mock interview</span>
+        <span className="week-hint">Study tiles open the study guide · quiz tiles open the quiz</span>
       </div>
 
       <div className="week-scroll">
@@ -106,7 +106,7 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
                   {d.blocks.map((b, i) => (
                     <Link
                       key={`${b.kind}-${b.row}-${i}`}
-                      href={b.kind === "interview" ? `/interview/${b.row}` : `/guide/${b.row}`}
+                      href={b.kind === "quiz" ? `/quiz/${b.row}` : `/guide/${b.row}`}
                       className={`tile ${b.kind} ${b.end - b.start < 1 ? "short" : b.end - b.start < 1.6 ? "mid" : ""}`}
                       style={{ top: pct(b.start), height: `calc(${pct(b.end)} - ${pct(b.start)})` }}
                       title={`${LABEL[b.kind]}: ${b.topic}${b.category ? ` (${b.category})` : ""}, ${clock(b.start)}-${clock(b.end)}`}
@@ -115,7 +115,7 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
                         {clock(b.start)}-{clock(b.end)}
                       </span>
                       <span className="tile-title">
-                        <span className="tile-note">{b.kind === "interview" ? "Interview" : b.note}</span> {b.topic}
+                        <span className="tile-note">{b.kind === "quiz" ? "Quiz" : b.note}</span> {b.topic}
                       </span>
                       {b.end - b.start >= 2 && b.category && <span className="tile-sub">{b.category}</span>}
                     </Link>

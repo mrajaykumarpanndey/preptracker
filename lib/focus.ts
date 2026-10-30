@@ -1,10 +1,10 @@
 import type { HistoryEntry, StudySession } from "./store";
 import { currentStudyDay, FIRST_HOUR, LAST_HOUR } from "./timetable";
 
-// Focus statistics from reading sessions (Study Log) and mock interviews (History), shared by the
+// Focus statistics from reading sessions (Study Log) and quizzes (History), shared by the
 // Progress and Focus pages. Times after midnight count towards the evening before.
 
-export type FocusEvent = { when: string; topic: string; minutes: number; kind: "reading" | "interview"; readPercent?: number };
+export type FocusEvent = { when: string; topic: string; minutes: number; kind: "reading" | "quiz"; readPercent?: number };
 
 const addDays = (day: string, n: number) =>
   new Date(Date.parse(`${day}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
@@ -14,7 +14,7 @@ export function focusStats(study: StudySession[], history: HistoryEntry[], days 
     ...study.map((s) => ({ when: s.started, topic: s.topic, minutes: s.minutes, kind: "reading" as const, readPercent: s.readPercent })),
     ...history
       .filter((h) => h.minutes)
-      .map((h) => ({ when: h.date, topic: h.topic, minutes: h.minutes!, kind: "interview" as const })),
+      .map((h) => ({ when: h.date, topic: h.topic, minutes: h.minutes!, kind: "quiz" as const })),
   ]
     .filter((e) => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(e.when))
     .sort((a, b) => b.when.localeCompare(a.when));
@@ -29,7 +29,7 @@ export function focusStats(study: StudySession[], history: HistoryEntry[], days 
     return {
       day,
       reading: sum(onDay.filter((e) => e.kind === "reading")),
-      interview: sum(onDay.filter((e) => e.kind === "interview")),
+      quiz: sum(onDay.filter((e) => e.kind === "quiz")),
     };
   });
   const byHour = Array.from({ length: LAST_HOUR - FIRST_HOUR }, (_, i) => FIRST_HOUR + i).map((hour) => ({
@@ -42,22 +42,22 @@ export function focusStats(study: StudySession[], history: HistoryEntry[], days 
       return {
         topic,
         reading: sum(mine.filter((e) => e.kind === "reading")),
-        interview: sum(mine.filter((e) => e.kind === "interview")),
+        quiz: sum(mine.filter((e) => e.kind === "quiz")),
         read: Math.max(0, ...mine.map((e) => e.readPercent ?? 0)),
       };
     })
-    .sort((a, b) => b.reading + b.interview - (a.reading + a.interview));
+    .sort((a, b) => b.reading + b.quiz - (a.reading + a.quiz));
   const last = perDay[perDay.length - 1];
   let streak = 0;
-  for (let i = perDay.length - 1; i >= 0 && perDay[i].reading + perDay[i].interview > 0; i--) streak++;
+  for (let i = perDay.length - 1; i >= 0 && perDay[i].reading + perDay[i].quiz > 0; i--) streak++;
 
   return {
     events,
     perDay,
     byHour,
     topicTotals,
-    todayMinutes: last.reading + last.interview,
-    weekMinutes: perDay.slice(-7).reduce((s, d) => s + d.reading + d.interview, 0),
+    todayMinutes: last.reading + last.quiz,
+    weekMinutes: perDay.slice(-7).reduce((s, d) => s + d.reading + d.quiz, 0),
     guidesRead: new Set(study.filter((s) => s.readPercent >= 80).map((s) => s.topic)).size,
     streak,
   };

@@ -70,7 +70,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <a href={`https://docs.google.com/spreadsheets/d/${sheetId}/edit`} target="_blank" rel="noreferrer">
               {settings.sheetTitle || "your sheet"}
             </a>
-            . Topics go on the <b>Tracker</b> tab; interview transcripts are saved on <b>History</b>.
+            . Topics go on the <b>Tracker</b> tab; quiz results are saved on <b>History</b>.
           </p>
         ) : (
           <p className="muted">No sheet added yet.</p>

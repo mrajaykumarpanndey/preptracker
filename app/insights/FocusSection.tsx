@@ -30,23 +30,23 @@ export default function FocusSection({ focus }: { focus: ReturnType<typeof focus
         <ChartCard
           wide
           title="Focused time per day"
-          subtitle="Minutes you actually had a guide or interview open and in focus - last 14 days"
+          subtitle="Minutes you actually had a guide or quiz open and in focus - last 14 days"
           legend={
             <Legend
               items={[
                 { label: "Reading guides", swatch: "s1" },
-                { label: "Mock interviews", swatch: "s2" },
+                { label: "Quizzes", swatch: "s2" },
               ]}
             />
           }
           table={
             <table className="data-table">
               <thead>
-                <tr><th>Day</th><th>Reading (min)</th><th>Interviews (min)</th></tr>
+                <tr><th>Day</th><th>Reading (min)</th><th>Quizzes (min)</th></tr>
               </thead>
               <tbody>
                 {focus.perDay.map((d) => (
-                  <tr key={d.day}><td>{d.day}</td><td>{Math.round(d.reading)}</td><td>{Math.round(d.interview)}</td></tr>
+                  <tr key={d.day}><td>{d.day}</td><td>{Math.round(d.reading)}</td><td>{Math.round(d.quiz)}</td></tr>
                 ))}
               </tbody>
             </table>

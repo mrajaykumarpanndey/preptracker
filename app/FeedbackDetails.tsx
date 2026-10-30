@@ -13,7 +13,7 @@ type Props = {
   advice: string;
 };
 
-/** "Details" button that opens the full interview feedback in a modal dialog. */
+/** "Details" button that opens the full quiz feedback in a modal dialog. */
 export default function FeedbackDetails({ row, topic, category, score, verdict, revise, advice }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
 
@@ -34,7 +34,7 @@ export default function FeedbackDetails({ row, topic, category, score, verdict, 
         <div className="modal-panel">
           <header className="modal-head">
             <div>
-              <p className="eyebrow">Interview feedback</p>
+              <p className="eyebrow">Quiz feedback</p>
               <h2 id={`feedback-title-${row}`}>{topic}</h2>
               {category && <p className="muted small">{category}</p>}
             </div>
@@ -72,8 +72,8 @@ export default function FeedbackDetails({ row, topic, category, score, verdict, 
             <button type="button" className="secondary" onClick={() => dialog.current?.close()}>
               Close
             </button>
-            <Link href={`/interview/${row}`} className="button-link">
-              Retry interview
+            <Link href={`/quiz/${row}`} className="button-link">
+              Retry quiz
             </Link>
           </footer>
         </div>

@@ -6,7 +6,8 @@ import { z } from "zod";
 import type { Row } from "./sheets";
 
 // Short study guides, one per topic, written by Claude and cached on disk (data/guides) so each
-// topic costs one API call. Shown on /guide/[row] and attached as a PDF to interview invites.
+// topic costs one API call. Shown on /guide/[row] and attached as a PDF to quiz invites;
+// each quiz is written from the guide (lib/quiz.ts).
 // They serve both goals: understand and build ML models, and do well in interviews.
 
 const MODEL = "claude-opus-5-5";
@@ -131,12 +132,4 @@ export function getGuide(row: Row): Promise<Guide> {
     inFlight.set(key, pending);
   }
   return pending;
-}
-
-/** Topic context for the interviewer: key points plus the guide's hands-on exercise, if the guide exists. */
-export function interviewContext(row: Row): string {
-  const exercise = cachedGuide(row)?.buildIt;
-  return exercise
-    ? `${row.keyPoints}\nHands-on exercise from the study guide: "${exercise.title}" - ${exercise.goal}`
-    : row.keyPoints;
 }

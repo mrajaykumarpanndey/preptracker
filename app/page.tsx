@@ -96,7 +96,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       <>
         <Header />
         <div className="card">
-          <p>Connect your Google account so the tracker can read and update your sheet and add interviews to your calendar.</p>
+          <p>Connect your Google account so the tracker can read and update your sheet and add quizzes to your calendar.</p>
           <a href="/api/google/auth">
             <button>Connect Google</button>
           </a>
@@ -121,14 +121,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   let rows: Row[];
   let attempts: Map<string, Attempts>;
-  let interviewsTaken = 0;
-  let interviewsPassed = 0;
+  let quizzesTaken = 0;
+  let quizzesPassed = 0;
   try {
     const [rowList, history] = await Promise.all([listRows(), listHistory()]);
     rows = rowList;
     attempts = attemptsByTopic(history);
-    interviewsTaken = history.length;
-    interviewsPassed = history.filter((h) => h.score >= config.passScore).length;
+    quizzesTaken = history.length;
+    quizzesPassed = history.filter((h) => h.score >= config.passScore).length;
   } catch (error) {
     return (
       <>
@@ -174,14 +174,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <div className="muted small">in progress / review</div>
         </div>
         <div className="card stat">
-          <div className="stat-value">{interviewsTaken}</div>
+          <div className="stat-value">{quizzesTaken}</div>
           <div className="muted small">
-            interviews attempted{interviewsTaken ? `, ${interviewsPassed} passed` : ""}
+            quizzes attempted{quizzesTaken ? `, ${quizzesPassed} passed` : ""}
           </div>
         </div>
         <div className="card stat">
           <div className="stat-value">{avgScore === null ? "-" : avgScore.toFixed(1)}</div>
-          <div className="muted small">average interview score</div>
+          <div className="muted small">average quiz score</div>
         </div>
       </div>
 
@@ -195,7 +195,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         ))}
       </nav>
       <p className="muted small">
-        Set a topic to &quot;{STATUS.IN_PROGRESS}&quot; when you start it (click its status); you&apos;ll get an interview
+        Set a topic to &quot;{STATUS.IN_PROGRESS}&quot; when you start it (click its status); you&apos;ll get a quiz
         invite before its due date.
       </p>
 
@@ -249,7 +249,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                       <Link href={`/guide/${row.row}`} className="guide-link">
                         Guide
                       </Link>
-                      <Link href={`/interview/${row.row}`} className="interview-link">
+                      <Link href={`/quiz/${row.row}`} className="quiz-link">
                         {row.status === STATUS.DONE ? "Retake" : row.score ? "Retry" : "Start"}
                       </Link>
                     </td>

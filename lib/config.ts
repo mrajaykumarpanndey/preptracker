@@ -44,7 +44,7 @@ export const config = {
   get inviteHoursBefore() { return number("INVITE_HOURS_BEFORE", 24); },
   get remindHoursBefore() { return number("REMIND_HOURS_BEFORE", 24); },
   get digestHour() { return number("DIGEST_HOUR", 9); },
-  get interviewMinutes() { return number("INTERVIEW_MINUTES", 30); },
+  get quizMinutes() { return number("QUIZ_MINUTES", 20); },
   // Working hours: study is planned around them. Days are 0 = Sunday ... 6 = Saturday.
   get officeDays() {
     return (process.env.OFFICE_DAYS ?? "1,2,3,4,5").split(",").map((d) => Number(d.trim())).filter((d) => d >= 0 && d <= 6);

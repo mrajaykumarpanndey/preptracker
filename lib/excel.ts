@@ -117,7 +117,7 @@ function parseRows(wb: ExcelJS.Workbook): Row[] {
 
     // Spread a phase's topics evenly across its weeks, in sheet order. Column J overrides.
     // Spread a phase's topics across its days in sheet order, giving each day a share proportional to the
-    // study hours it has (office days have fewer). Due at that day's interview time. Column J overrides.
+    // study hours it has (office days have fewer). Due at that day's quiz time. Column J overrides.
     let planned = cell("J");
     const window = windows.get(phase);
     if (!planned && window) {
@@ -127,7 +127,7 @@ function parseRows(wb: ExcelJS.Workbook): Row[] {
       let offset = 0;
       for (let sum = caps[0]; sum < target - 1e-9 && offset < caps.length - 1; sum += caps[++offset]);
       const day = addDays(window.start, offset);
-      planned = `${day} ${clock(daySchedule(day).interviewStart)}`;
+      planned = `${day} ${clock(daySchedule(day).quizStart)}`;
     }
 
     return {

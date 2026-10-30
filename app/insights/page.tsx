@@ -76,15 +76,15 @@ export default async function InsightsPage() {
   const doneTotal = rows.filter((r) => r.status === STATUS.DONE).length;
   const gap = doneTotal - plannedByNow;
 
-  // Interviews.
-  const interviews = [...history].sort((a, b) => a.date.localeCompare(b.date));
-  const passed = interviews.filter((h) => h.score >= config.passScore).length;
-  const avgScore = interviews.length ? interviews.reduce((s, h) => s + h.score, 0) / interviews.length : null;
+  // Quizzes.
+  const quizzes = [...history].sort((a, b) => a.date.localeCompare(b.date));
+  const passed = quizzes.filter((h) => h.score >= config.passScore).length;
+  const avgScore = quizzes.length ? quizzes.reduce((s, h) => s + h.score, 0) / quizzes.length : null;
 
   // Average of each topic's latest score, by category.
   const categoryOf = new Map(rows.map((r) => [r.topic, r.category || r.phase || "Other"]));
   const latest = new Map<string, number>();
-  for (const h of interviews) latest.set(h.topic, h.score);
+  for (const h of quizzes) latest.set(h.topic, h.score);
   const byCategory = new Map<string, number[]>();
   for (const [topic, score] of latest) {
     const category = categoryOf.get(topic) ?? "Other";
@@ -122,9 +122,9 @@ export default async function InsightsPage() {
           </div>
         </div>
         <div className="card stat">
-          <div className="stat-value">{interviews.length}</div>
+          <div className="stat-value">{quizzes.length}</div>
           <div className="muted small">
-            interviews taken{interviews.length ? `, ${passed} passed` : ""}
+            quizzes taken{quizzes.length ? `, ${passed} passed` : ""}
           </div>
         </div>
         <div className="card stat">
@@ -187,7 +187,7 @@ export default async function InsightsPage() {
           {categories.length ? (
             <CategoryScores items={categories} />
           ) : (
-            <Empty>Scores by category appear after your first interview.</Empty>
+            <Empty>Scores by category appear after your first quiz.</Empty>
           )}
         </ChartCard>
 
@@ -231,17 +231,17 @@ export default async function InsightsPage() {
         </ChartCard>
 
         <ChartCard
-          title="Interview scores"
+          title="Quiz scores"
           wide
-          subtitle="Every interview in the order you took it"
+          subtitle="Every quiz in the order you took it"
           table={
-            interviews.length > 0 && (
+            quizzes.length > 0 && (
               <table className="data-table">
                 <thead>
                   <tr><th>Date</th><th>Topic</th><th>Score</th></tr>
                 </thead>
                 <tbody>
-                  {interviews.map((h, i) => (
+                  {quizzes.map((h, i) => (
                     <tr key={i}><td>{h.date}</td><td>{h.topic}</td><td>{h.score}</td></tr>
                   ))}
                 </tbody>
@@ -249,10 +249,10 @@ export default async function InsightsPage() {
             )
           }
         >
-          {interviews.length ? (
-            <ScoreTimeline points={interviews} passScore={config.passScore} />
+          {quizzes.length ? (
+            <ScoreTimeline points={quizzes} passScore={config.passScore} />
           ) : (
-            <Empty>No interviews yet. Your scores will appear here after your first one.</Empty>
+            <Empty>No quizzes yet. Your scores will appear here after your first one.</Empty>
           )}
         </ChartCard>
 

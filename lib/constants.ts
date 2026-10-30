@@ -11,17 +11,11 @@ export const STATUS = {
 // Statuses that mean "I've studied this, test me when the time comes".
 export const REVIEWABLE: string[] = [STATUS.IN_PROGRESS, STATUS.READY, STATUS.NEEDS_WORK];
 
-// The interviewer puts this on its last message when it has enough signal to score.
-export const END_MARKER = "[[INTERVIEW_COMPLETE]]";
+// A guide counts as read once you've scrolled through this much of it; its quiz is then unlocked.
+export const READ_COMPLETE = 90;
 
-/** An interviewer message split into parts so the page can lay it out clearly. */
-export type InterviewerView = {
-  reaction: string;
-  context: string;
-  question: string;
-  parts: string[];
-  followUp: boolean;
-  done: boolean;
-};
+/** A quiz question as the browser sees it - the answer stays on the server until you submit. */
+export type QuizQuestion = { concept: string; question: string; code: string; options: string[] };
 
-export type ChatTurn = { role: "user" | "assistant"; content: string; view?: InterviewerView };
+/** One question's outcome, returned after grading. */
+export type QuizReview = { chosen: number | null; answer: number; correct: boolean; explanation: string };

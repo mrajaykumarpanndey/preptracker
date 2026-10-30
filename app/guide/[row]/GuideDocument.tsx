@@ -172,8 +172,8 @@ export default function GuideDocument({ row, guide }: Props) {
               <a href={`/api/guide/${row}`} className="button-link" target="_blank" rel="noreferrer">
                 Download PDF
               </a>
-              <Link href={`/interview/${row}`} className="button-link secondary-link">
-                Start mock interview
+              <Link href={`/quiz/${row}`} className="button-link secondary-link">
+                Take the quiz
               </Link>
               <button type="button" className="secondary" onClick={() => setEditing(true)}>
                 Edit
@@ -391,8 +391,8 @@ export default function GuideDocument({ row, guide }: Props) {
 
       {!editing && (
         <div className="guide-actions" style={{ marginTop: 28 }}>
-          <Link href={`/interview/${row}`} className="button-link">
-            I&apos;m ready - start the mock interview
+          <Link href={`/quiz/${row}`} className="button-link">
+            I&apos;ve read it - take the quiz
           </Link>
         </div>
       )}

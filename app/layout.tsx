@@ -5,7 +5,7 @@ import { themeScript } from "./themeScript";
 
 export const metadata: Metadata = {
   title: "Prep Tracker",
-  description: "Tracks placement preparation from a Google Sheet and runs AI mock interviews.",
+  description: "Tracks placement preparation from a Google Sheet and quizzes you on each study guide you finish.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

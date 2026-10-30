@@ -197,7 +197,7 @@ export function BurnUp({ points, today }: { points: BurnPoint[]; today: string }
   );
 }
 
-/* ---------- Interview scores over time ---------- */
+/* ---------- Quiz scores over time ---------- */
 
 export type ScorePoint = { date: string; topic: string; score: number };
 
@@ -211,7 +211,7 @@ export function ScoreTimeline({ points, passScore }: { points: ScorePoint[]; pas
   const showLabel = (i: number) => i === n - 1 || (i % labelEvery === 0 && n - 1 - i >= labelEvery / 2 + 0.5);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Interview scores in order taken">
+    <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Quiz scores in order taken">
       <YGrid max={10} step={2} />
       <g className="ref">
         <line x1={PAD.left} x2={PAD.left + plotW} y1={y(passScore)} y2={y(passScore)} />
@@ -303,9 +303,9 @@ export function WeeklyHours({ weeks }: { weeks: { weekStart: string; hours: numb
   );
 }
 
-/* ---------- Focused time per day (stacked columns: reading + interviews) ---------- */
+/* ---------- Focused time per day (stacked columns: reading + quizzes) ---------- */
 
-export type FocusDay = { day: string; reading: number; interview: number };
+export type FocusDay = { day: string; reading: number; quiz: number };
 
 /** Column path with a rounded top and a square base. */
 function column(x: number, w: number, top: number, base: number, round: boolean): string {
@@ -314,7 +314,7 @@ function column(x: number, w: number, top: number, base: number, round: boolean)
 }
 
 export function DailyFocus({ days }: { days: FocusDay[] }) {
-  const totals = days.map((d) => d.reading + d.interview);
+  const totals = days.map((d) => d.reading + d.quiz);
   const { max, step } = niceScale(Math.max(...totals, 1));
   const slot = plotW / days.length;
   const barW = Math.min(34, slot - 8);
@@ -323,17 +323,17 @@ export function DailyFocus({ days }: { days: FocusDay[] }) {
   const labelEvery = Math.ceil(days.length / 10);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Focused minutes per day, reading and interviews">
+    <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Focused minutes per day, reading and quizzes">
       <YGrid max={max} step={step} format={(v) => `${v}m`} />
       {days.map((d, i) => {
         const x = PAD.left + slot * i + (slot - barW) / 2;
-        const total = d.reading + d.interview;
+        const total = d.reading + d.quiz;
         const readingTop = y(d.reading);
-        const gap = d.reading > 0 && d.interview > 0 ? 2 : 0; // surface gap between stacked segments
+        const gap = d.reading > 0 && d.quiz > 0 ? 2 : 0; // surface gap between stacked segments
         return (
           <g key={d.day}>
-            {d.reading > 0 && <path d={column(x, barW, readingTop, base, d.interview === 0)} className="fill s1" />}
-            {d.interview > 0 && <path d={column(x, barW, y(total), readingTop - gap, true)} className="fill s2" />}
+            {d.reading > 0 && <path d={column(x, barW, readingTop, base, d.quiz === 0)} className="fill s1" />}
+            {d.quiz > 0 && <path d={column(x, barW, y(total), readingTop - gap, true)} className="fill s2" />}
             {total > 0 && (
               <text x={x + barW / 2} y={y(total) - 6} textAnchor="middle" className="value-label">
                 {Math.round(total)}
@@ -345,7 +345,7 @@ export function DailyFocus({ days }: { days: FocusDay[] }) {
               </text>
             )}
             <rect x={PAD.left + slot * i} y={PAD.top} width={slot} height={plotH} className="hit">
-              <title>{`${shortDate.format(asDate(d.day))}: ${Math.round(d.reading)} min reading, ${Math.round(d.interview)} min interviews`}</title>
+              <title>{`${shortDate.format(asDate(d.day))}: ${Math.round(d.reading)} min reading, ${Math.round(d.quiz)} min quizzes`}</title>
             </rect>
           </g>
         );

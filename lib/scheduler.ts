@@ -8,27 +8,27 @@ import { renderGuidePdf } from "./guidePdf";
 import { buildInvite, sendMail } from "./mail";
 import { listRows, updateRows, type Row, type RowUpdate } from "./store";
 import { formatLocal, localDay, localHour } from "./time";
-import { clock, currentStudyDay, dueDate, interviewStart, planDays, type Kind } from "./timetable";
+import { clock, currentStudyDay, dueDate, quizStart, planDays, type Kind } from "./timetable";
 
 export { dueDate };
 
 const HOUR = 3_600_000;
 
-export function interviewUrl(row: Row): string {
-  return `${config.appUrl}/interview/${row.row}`;
+export function quizUrl(row: Row): string {
+  return `${config.appUrl}/quiz/${row.row}`;
 }
 
 /**
- * Schedules the interview and returns the value stored in "Invite Sent For": "<due time>|<calendar event id>".
+ * Schedules the quiz and returns the value stored in "Invite Sent For": "<due time>|<calendar event id>".
  * With Google connected it creates a real Google Calendar event; otherwise it emails an .ics invite.
  */
 export async function sendInvite(row: Row, start: Date, dueKey: string): Promise<string> {
-  const url = interviewUrl(row);
+  const url = quizUrl(row);
   const event = {
-    title: `Mock interview: ${row.topic}`,
-    description: `AI interview to check your preparation on "${row.topic}".`,
+    title: `Quiz: ${row.topic}`,
+    description: `Multiple-choice quiz on your study guide for "${row.topic}".`,
     start,
-    minutes: config.interviewMinutes,
+    minutes: config.quizMinutes,
     url,
   };
 
@@ -49,23 +49,23 @@ export async function sendInvite(row: Row, start: Date, dueKey: string): Promise
     console.error(`Study guide for "${row.topic}" failed`, error);
   }
   await sendMail({
-    subject: `Mock interview: ${row.topic} at ${when.slice(11)} on ${when.slice(0, 10)}`,
+    subject: `Quiz: ${row.topic} at ${when.slice(11)} on ${when.slice(0, 10)}`,
     html: renderEmail({
-      preheader: `Your ${config.interviewMinutes}-minute mock interview on ${row.topic} is booked for ${when}.`,
-      title: `Your mock interview on ${row.topic}`,
+      preheader: `Your ${config.quizMinutes}-minute quiz on ${row.topic} is booked for ${when}.`,
+      title: `Your quiz on ${row.topic}`,
       body: [
         p(
-          `It's booked for <b>${esc(when)}</b> (${config.interviewMinutes} minutes)${
+          `It's booked for <b>${esc(when)}</b> (${config.quizMinutes} minutes)${
             eventId ? " and is in your Google Calendar" : ". Accept the attached invite to add it to your calendar"
           }.`,
         ),
-        p("The AI interviewer asks one question at a time and follows up on vague answers. Answer as you would in a real interview - your score goes straight into your tracker."),
+        p("It's a multiple-choice quiz written from your study guide, with an explanation for every answer once you submit. Your score goes straight into your tracker."),
         heading("Get ready"),
         p(
           `${guidePdf ? "Your <b>study guide is attached as a PDF</b>" : "Your study guide is ready online"}: key ideas, a diagram or code example, a small hands-on build exercise, and the questions you're likely to get. <a href="${guideUrl}" style="color:#2a63d6">Read it online</a>.`,
         ),
       ].join(""),
-      cta: { label: "Start the interview", url },
+      cta: { label: "Start the quiz", url },
     }),
     ics: eventId ? undefined : buildInvite({ uid: `prep-${row.row}-${start.getTime()}@prep-tracker`, ...event }),
     attachments: guidePdf
@@ -83,7 +83,7 @@ const SESSION: Record<Kind, { label: string; color: string }> = {
   study: { label: "Study", color: "#2a78d6" },
   retry: { label: "Revise & retry", color: "#c53030" },
   ahead: { label: "Get ahead", color: "#1c4f9c" },
-  interview: { label: "Mock interview", color: "#c4511f" },
+  quiz: { label: "Quiz", color: "#c4511f" },
 };
 
 /** Today's sessions - the same plan the dashboard board shows. */
@@ -96,9 +96,9 @@ function timetableHtml(rows: Row[], today: string): string {
       .map((b) => ({
         time: `${clock(b.start)}-${clock(b.end)}`,
         color: SESSION[b.kind].color,
-        title: b.kind === "interview" || !b.note ? b.topic : `${b.note}: ${b.topic}`,
+        title: b.kind === "quiz" || !b.note ? b.topic : `${b.note}: ${b.topic}`,
         subtitle: [SESSION[b.kind].label, b.category].filter(Boolean).join(" · "),
-        href: `${config.appUrl}/${b.kind === "interview" ? "interview" : "guide"}/${b.row}`,
+        href: `${config.appUrl}/${b.kind === "quiz" ? "quiz" : "guide"}/${b.row}`,
       })),
   );
   const more = plan.more > 0 ? p(`<span style="color:#8a8f98">+${plan.more} more topics due today - see the tracker.</span>`) : "";
@@ -109,7 +109,7 @@ async function sendDigest(items: DigestItem[], rows: Row[], now: Date): Promise<
   const line = ({ row, due, overdue }: DigestItem) => {
     const status = row.status || STATUS.NOT_STARTED;
     const action = REVIEWABLE.includes(status)
-      ? `<a href="${interviewUrl(row)}" style="color:#2a63d6">take the interview</a>`
+      ? `<a href="${quizUrl(row)}" style="color:#2a63d6">take the quiz</a>`
       : `set it to "${STATUS.IN_PROGRESS}" when you start`;
     const category = row.category ? ` <span style="color:#8a8f98">(${esc(row.category)})</span>` : "";
     return `<b>${esc(row.topic)}</b>${category}<br><span style="font-size:14px">${overdue ? '<b style="color:#c53030">Overdue</b> since' : "Due"} ${esc(
@@ -121,7 +121,7 @@ async function sendDigest(items: DigestItem[], rows: Row[], now: Date): Promise<
   const sorted = [...items].sort((a, b) => a.due.getTime() - b.due.getTime());
   const more = sorted.length - DIGEST_LIMIT;
   const studyDay = currentStudyDay(now).day;
-  const sessions = planDays(rows, studyDay, 1)[0].blocks.filter((b) => b.kind !== "interview").length;
+  const sessions = planDays(rows, studyDay, 1)[0].blocks.filter((b) => b.kind !== "quiz").length;
 
   await sendMail({
     subject: `Today's plan: ${sessions} session${sessions === 1 ? "" : "s"}${overdue ? `, ${overdue} overdue` : ""}`,
@@ -140,7 +140,7 @@ async function sendDigest(items: DigestItem[], rows: Row[], now: Date): Promise<
   });
 }
 
-/** One pass: send interview invites that are due and a once-a-day reminder digest. Safe to run every few minutes. */
+/** One pass: send quiz invites that are due and a once-a-day reminder digest. Safe to run every few minutes. */
 export async function runScheduler(now = new Date()) {
   const rows = await listRows();
   const today = localDay(now);
@@ -163,7 +163,7 @@ export async function runScheduler(now = new Date()) {
       hoursLeft > -12 &&
       row.inviteSentFor.split("|")[0] !== dueKey
     ) {
-      const start = interviewStart(rows, row) ?? due;
+      const start = quizStart(rows, row) ?? due;
       updates.push({ row: row.row, fields: { inviteSentFor: await sendInvite(row, start, dueKey) } });
       invited.push(row.topic);
     }

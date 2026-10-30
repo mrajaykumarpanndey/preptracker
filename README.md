@@ -1,33 +1,35 @@
 # Prep Tracker
 
 Reads your preparation plan from a Google Sheet, emails you calendar invites when a topic is due for a check,
-runs an AI mock interview (Claude), scores you, and writes the result back to the sheet. It also sends a daily
+writes a study guide for each topic and, once you've read it, a multiple-choice quiz on it (Claude), scores you,
+and writes the result back to the sheet. It also sends a daily
 reminder email listing what's due or overdue.
 
 ## Using the Excel file (default)
 
 When `ML_Learning_Tracker.xlsx` is in this folder, the portal uses it instead of Google (no Google login needed;
-interview invites arrive as email calendar attachments).
+quiz invites arrive as email calendar attachments).
 
 - **Due dates**: each phase runs from the Roadmap's *Start date* for its *Planned Weeks*, and that phase's topics are
   spread evenly across it in sheet order. Phases with 0 weeks (e.g. the specialization you skip) have no dates.
   To set a topic's date yourself, fill in **Target Date** (column J).
 - **Statuses** (column F dropdown): Not Started, In Progress, Ready for Review, Needs Modification, Done.
 - The portal writes Interview Score, AI Feedback, Next Review, Invite Sent For, Last Reminder (K-O), the Date
-  Completed (H) when you pass, and a row in the **Interview History** sheet.
+  Completed (H) when you pass, and a row in the **Interview History** sheet (the sheet keeps its old name so
+  earlier results still load).
 - `npm run prepare-excel` adds those columns; the original is kept as `ML_Learning_Tracker.backup.xlsx`.
-- Close the file in Excel while an interview is being scored; saving an older copy from Excel would overwrite it.
+- Close the file in Excel while a quiz is being scored; saving an older copy from Excel would overwrite it.
 
 ## How it works
 
 | Sheet status | What the app does |
 |---|---|
 | `Not Started` | Included in the daily reminder when the planned date is near or past. |
-| `In Progress` / `Ready for Review` | When the planned time is within 24h, emails you a calendar invite with the interview link. |
-| `Needs Modification` | Same as above, using `Next Review` (set automatically to 3 days after a failed interview). |
+| `In Progress` / `Ready for Review` | When the planned time is within 24h, emails you a calendar invite with the quiz link. |
+| `Needs Modification` | Same as above, using `Next Review` (set automatically to 3 days after a failed quiz). |
 | `Done` | Ignored. |
 
-After an interview the app writes **Score**, **Feedback** and **Status** (`Done` if score ≥ 7, else
+After a quiz the app writes **Score**, **Feedback** and **Status** (`Done` if score ≥ 7, else
 `Needs Modification`) back to the sheet and adds the full transcript to the **History** tab.
 
 ### Sheet columns (Tracker tab)
@@ -37,9 +39,10 @@ After an interview the app writes **Score**, **Feedback** and **Status** (`Done`
 | React hooks | useState, useEffect cleanup, custom hooks, rules of hooks | 2026-11-02 18:30 | In Progress | | | | | |
 
 - You fill **A-D**. Write dates as `YYYY-MM-DD HH:mm`. If Sheets changes how they look, format column C as *Plain text*.
-- **Key Points** is what the interviewer checks you on. The more specific it is, the fairer the score.
+- **Key Points** steer the study guide, and the quiz is written from the guide. The more specific they are, the
+  more focused the questions.
 - Columns E-I are filled in by the app. Clear **H** to force a new invite.
-- The interview link uses the row number, so avoid inserting rows above topics that already have invites pending.
+- The quiz link uses the row number, so avoid inserting rows above topics that already have invites pending.
 
 ## Setup (about 15 minutes)
 
@@ -66,7 +69,7 @@ In https://console.cloud.google.com, for the project that owns the client:
    `.env.local` automatically. Restart `npm run dev`.
 6. Run `npm run setup-sheet` to create the `Tracker` and `History` tabs with headers.
 
-Interviews then appear as real events in your Google Calendar, with a 15-minute popup reminder.
+Quizzes then appear as real events in your Google Calendar, with a 15-minute popup reminder.
 
 ### 4. Email (Gmail)
 1. Turn on 2-Step Verification on your Google account.
@@ -93,11 +96,11 @@ Set `APP_PASSWORD` to put a login prompt on the site (any username, that passwor
 |---|---|---|
 | `TZ_OFFSET` | `+05:30` | Timezone used to read the times in the sheet |
 | `PASS_SCORE` | `7` | Score needed for `Done` |
-| `RETRY_DAYS` | `3` | Days until the next interview after a failed one |
+| `RETRY_DAYS` | `3` | Days until the next quiz after a failed one |
 | `INVITE_HOURS_BEFORE` | `24` | How early the invite email is sent |
 | `REMIND_HOURS_BEFORE` | `24` | How close to the deadline a topic enters the daily reminder |
 | `DIGEST_HOUR` | `9` | Earliest hour (local) for the daily reminder email |
-| `INTERVIEW_MINUTES` | `30` | Length of the calendar event |
+| `QUIZ_MINUTES` | `20` | Length of the calendar event |
 
 ## Production (Azure VM)
 

@@ -26,7 +26,7 @@ export default async function FocusPage() {
     <>
       <h1 className="page-title">Focus</h1>
       <p className="muted" style={{ marginTop: 16 }}>
-        Time counts only while a study guide or interview is open and in focus. Open a study tile on your timetable to
+        Time counts only while a study guide or quiz is open and in focus. Open a study tile on your timetable to
         start a reading session.
       </p>
       <FocusSection focus={focus} />
@@ -42,16 +42,16 @@ export default async function FocusPage() {
           {focus.topicTotals.length ? (
             <div className="bar-list">
               {focus.topicTotals.slice(0, 12).map((t) => {
-                const total = t.reading + t.interview;
-                const max = focus.topicTotals[0].reading + focus.topicTotals[0].interview;
+                const total = t.reading + t.quiz;
+                const max = focus.topicTotals[0].reading + focus.topicTotals[0].quiz;
                 return (
-                  <div key={t.topic} className="bar-row" title={`${Math.round(t.reading)} min reading, ${Math.round(t.interview)} min interviews`}>
+                  <div key={t.topic} className="bar-row" title={`${Math.round(t.reading)} min reading, ${Math.round(t.quiz)} min quizzes`}>
                     <div className="bar-label">
                       {rowOf.has(t.topic) ? <Link href={`/guide/${rowOf.get(t.topic)}`}>{t.topic}</Link> : t.topic}
                     </div>
                     <div className="phase-bar">
                       {t.reading > 0 && <div className="seg s1" style={{ width: `${(t.reading / max) * 100}%` }} />}
-                      {t.interview > 0 && <div className="seg s2" style={{ width: `${(t.interview / max) * 100}%` }} />}
+                      {t.quiz > 0 && <div className="seg s2" style={{ width: `${(t.quiz / max) * 100}%` }} />}
                     </div>
                     <div className="bar-value">{minutesLabel(total)}</div>
                   </div>
@@ -67,7 +67,7 @@ export default async function FocusPage() {
           <header className="chart-head">
             <div>
               <h2>Session log</h2>
-              <p className="muted small">Every reading session and interview, newest first</p>
+              <p className="muted small">Every reading session and quiz, newest first</p>
             </div>
           </header>
           {focus.events.length ? (
@@ -83,7 +83,7 @@ export default async function FocusPage() {
                         {when.format(new Date(`${e.when.slice(0, 10)}T12:00:00Z`))} {e.when.slice(11, 16)}
                       </td>
                       <td>{e.topic}</td>
-                      <td>{e.kind === "reading" ? "Reading" : "Interview"}</td>
+                      <td>{e.kind === "reading" ? "Reading" : "Quiz"}</td>
                       <td>{minutesLabel(e.minutes)}</td>
                       <td>{e.readPercent === undefined ? "-" : `${e.readPercent}%`}</td>
                     </tr>

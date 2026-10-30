@@ -3,7 +3,7 @@ import { REVIEWABLE, STATUS } from "./constants";
 import type { Row } from "./sheets";
 import { formatLocal, localDay, parseLocal } from "./time";
 
-// The daily study plan shared by the dashboard board, interview invites and the morning email,
+// The daily study plan shared by the dashboard board, quiz invites and the morning email,
 // so all three show the same sessions at the same times.
 
 // A "study day" runs from waking up until going to sleep, which can be after midnight: hours past 24
@@ -11,17 +11,17 @@ import { formatLocal, localDay, parseLocal } from "./time";
 export const FIRST_HOUR = config.wakeHour;
 export const LAST_HOUR = config.sleepStartHour + 24;
 const MAX_STUDY_PER_DAY = 12;
-const INTERVIEW_LENGTH = 0.5;
+const QUIZ_LENGTH = 0.5;
 
 type Window = { start: number; end: number };
-export type DaySchedule = { windows: Window[]; interviewSlots: number[]; interviewStart: number; office?: Window };
+export type DaySchedule = { windows: Window[]; quizSlots: number[]; quizStart: number; office?: Window };
 
 const weekdayOf = (day: string) => new Date(`${day}T12:00:00Z`).getUTCDay();
 
 /**
  * When you can study on a given day, around office and sleep.
- * Office days: an hour to get home, 3h of study, interviews, then a late session until an hour before sleep.
- * Free days: two daytime sessions after waking, interviews after dinner, then an evening session.
+ * Office days: an hour to get home, 3h of study, quizzes, then a late session until an hour before sleep.
+ * Free days: two daytime sessions after waking, quizzes after dinner, then an evening session.
  */
 export function daySchedule(day: string): DaySchedule {
   const lastAwake = LAST_HOUR - 1; // stop studying an hour before sleep
@@ -29,11 +29,11 @@ export function daySchedule(day: string): DaySchedule {
     const office = { start: config.officeStartHour, end: config.officeEndHour };
     const evening = { start: office.end + 1, end: office.end + 4 };
     const late = { start: evening.end + 1, end: lastAwake };
-    const interviewSlots = [evening.end, evening.end + 0.5, late.end, late.end + 0.5];
+    const quizSlots = [evening.end, evening.end + 0.5, late.end, late.end + 0.5];
     return {
       windows: [evening, late].filter((w) => w.end - w.start >= 0.5),
-      interviewSlots,
-      interviewStart: interviewSlots[0],
+      quizSlots,
+      quizStart: quizSlots[0],
       office,
     };
   }
@@ -43,8 +43,8 @@ export function daySchedule(day: string): DaySchedule {
     { start: wake + 6, end: wake + 10 },
     { start: wake + 12, end: Math.min(wake + 15, lastAwake) },
   ].filter((w) => w.end - w.start >= 0.5);
-  const interviewSlots = [wake + 11, wake + 11.5, lastAwake, lastAwake + 0.5];
-  return { windows, interviewSlots, interviewStart: interviewSlots[0] };
+  const quizSlots = [wake + 11, wake + 11.5, lastAwake, lastAwake + 0.5];
+  return { windows, quizSlots, quizStart: quizSlots[0] };
 }
 
 /** The study day you're in right now, and the hour on its clock (after midnight counts as 24+). */
@@ -61,7 +61,7 @@ export function dayCapacity(day: string): number {
   return daySchedule(day).windows.reduce((sum, w) => sum + (w.end - w.start), 0);
 }
 
-export type Kind = "study" | "retry" | "ahead" | "interview";
+export type Kind = "study" | "retry" | "ahead" | "quiz";
 export type Block = { row: number; topic: string; category?: string; kind: Kind; start: number; end: number; note?: string };
 export type PlanDay = { day: string; isToday: boolean; blocks: Block[]; more: number };
 
@@ -77,19 +77,19 @@ const addDays = (day: string, n: number) =>
 
 const reviewable = (row: Row) => row.status !== STATUS.DONE && REVIEWABLE.includes(row.status);
 
-function sameDayInterviews(rows: Row[], day: string): Row[] {
+function sameDayQuizzes(rows: Row[], day: string): Row[] {
   return rows
     .filter((r) => reviewable(r) && dueDate(r) && localDay(dueDate(r)!) === day)
     .sort((a, b) => dueDate(a)!.getTime() - dueDate(b)!.getTime() || a.row - b.row);
 }
 
-/** Interview slot for a topic on its due day, from that day's interview slots in due order. */
-export function interviewStart(rows: Row[], row: Row): Date | null {
+/** Quiz slot for a topic on its due day, from that day's quiz slots in due order. */
+export function quizStart(rows: Row[], row: Row): Date | null {
   const due = dueDate(row);
   if (!due) return null;
   const day = localDay(due);
-  const index = Math.max(0, sameDayInterviews(rows, day).findIndex((r) => r.row === row.row));
-  const slots = daySchedule(day).interviewSlots;
+  const index = Math.max(0, sameDayQuizzes(rows, day).findIndex((r) => r.row === row.row));
+  const slots = daySchedule(day).quizSlots;
   const hour = slots[Math.min(index, slots.length - 1)];
   const date = parseLocal(`${day} ${clock(hour)}`);
   return date && hour >= 24 ? new Date(date.getTime() + 86_400_000) : date; // after midnight = next calendar day
@@ -124,7 +124,7 @@ export function planDays(rows: Row[], today: string, count: number): PlanDay[] {
   }
 
   return days.map((day) => {
-    const { windows, interviewSlots } = daySchedule(day);
+    const { windows, quizSlots } = daySchedule(day);
     const items = buckets.get(day)!;
     const shown = items.slice(0, MAX_STUDY_PER_DAY);
     const blocks: Block[] = [];
@@ -151,15 +151,15 @@ export function planDays(rows: Row[], today: string, count: number): PlanDay[] {
       });
     }
 
-    // Half-hour mock interviews in the evening, at the same times the invites use.
+    // Half-hour quizzes in the evening, at the same times the invites use.
     const evening = [
-      ...sameDayInterviews(rows, day),
+      ...sameDayQuizzes(rows, day),
       ...(day === today ? items.filter((r) => reviewable(r) && localDay(dueDate(r)!) < today) : []), // overdue
     ];
     evening.forEach((row, i) => {
-      if (i >= interviewSlots.length) return;
-      const start = interviewSlots[i];
-      blocks.push({ row: row.row, topic: row.topic, category: row.category, kind: "interview", start, end: start + INTERVIEW_LENGTH });
+      if (i >= quizSlots.length) return;
+      const start = quizSlots[i];
+      blocks.push({ row: row.row, topic: row.topic, category: row.category, kind: "quiz", start, end: start + QUIZ_LENGTH });
     });
 
     return { day, isToday: day === today, blocks, more: items.length - shown.length };
