@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { timeLabel, timeRange } from "@/lib/time";
 
 // Hand-rolled SVG/HTML charts. Colors come from --series-1 / --series-2 (validated for both
 // themes); text always uses text tokens. Every mark has a native hover tooltip via <title>.
@@ -363,7 +364,7 @@ export function FocusByHour({ hours }: { hours: { hour: number; minutes: number 
   const y = (v: number) => PAD.top + plotH - (v / max) * plotH;
   const base = PAD.top + plotH;
   const best = hours.reduce((a, b) => (b.minutes > a.minutes ? b : a), hours[0]);
-  const label = (h: number) => `${String(h % 24).padStart(2, "0")}:00`;
+  const label = (h: number) => timeLabel(h).replace(":00", ""); // "9 PM" fits under each column
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label="Focused minutes by hour of day">
@@ -384,7 +385,7 @@ export function FocusByHour({ hours }: { hours: { hour: number; minutes: number 
               </text>
             )}
             <rect x={PAD.left + slot * i} y={PAD.top} width={slot} height={plotH} className="hit">
-              <title>{`${label(h.hour)}-${label(h.hour + 1)}: ${Math.round(h.minutes)} focused minutes`}</title>
+              <title>{`${timeRange(h.hour, h.hour + 1)}: ${Math.round(h.minutes)} focused minutes`}</title>
             </rect>
           </g>
         );

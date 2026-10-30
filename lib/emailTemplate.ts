@@ -36,10 +36,16 @@ export function progressBar(done: number, total: number): string {
 }
 
 /** Rows of "time | colour bar | title + subtitle" - used for the day's timetable. */
-export function schedule(rows: { time: string; color: string; title: string; subtitle: string; href?: string }[]): string {
+export type ScheduleRow =
+  | { time: string; color: string; title: string; subtitle: string; href?: string }
+  | { divider: string };
+
+export function schedule(rows: ScheduleRow[]): string {
   const cells = rows
-    .map(
-      (r) => `<tr>
+    .map((r) =>
+      "divider" in r
+        ? `<tr><td colspan="2" style="padding:14px 0 6px;font-family:${FONT};font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;color:${MUTED}">${esc(r.divider)}</td></tr>`
+        : `<tr>
 <td valign="top" style="padding:9px 12px 9px 0;white-space:nowrap;font-family:${FONT};font-size:14px;color:${MUTED}">${esc(r.time)}</td>
 <td valign="top" style="padding:9px 0 9px 12px;border-left:4px solid ${r.color};font-family:${FONT};font-size:15px;color:${TEXT}">
 <b>${r.href ? `<a href="${r.href}" style="color:${TEXT};text-decoration:none">${esc(r.title)}</a>` : esc(r.title)}</b><br>

@@ -5,7 +5,7 @@ import { esc, heading, list, p, renderEmail } from "@/lib/emailTemplate";
 import { sendMail } from "@/lib/mail";
 import { gradeQuiz } from "@/lib/quiz";
 import { appendHistory, getRow, updateRow } from "@/lib/store";
-import { formatLocal, localDay, parseLocal } from "@/lib/time";
+import { formatLocal, friendly, localDay, parseLocal } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
           p(
             passed
               ? "This topic is now marked <b>Done</b> in your tracker."
-              : `It's marked <b>Needs Modification</b>. Your retry is booked for <b>${esc(nextReview)}</b>.`,
+              : `It's marked <b>Needs Modification</b>. Your retry is booked for <b>${esc(friendly(nextReview))}</b>.`,
           ),
         ].join(""),
         cta: passed
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       }),
     }).catch((error) => console.error("Result email failed", error));
 
-    return NextResponse.json({ ...result, transcript: undefined, status, nextReview });
+    return NextResponse.json({ ...result, transcript: undefined, status, nextReview: nextReview && friendly(nextReview) });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });

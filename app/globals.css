@@ -331,7 +331,7 @@ td.action { text-align: right; white-space: nowrap; }
 
 .week-scroll { overflow-x: auto; padding: 12px 18px 18px; }
 .week-stage { min-width: 860px; }
-.week-board { --head: 46px; --hour: 36px; --span: 19; display: grid; grid-template-columns: 50px repeat(7, 1fr); }
+.week-board { --head: 46px; --hour: 50px; --span: 19; grid-template-columns: 66px repeat(7, 1fr) !important; display: grid; grid-template-columns: 50px repeat(7, 1fr); }
 
 .week-hours { display: flex; flex-direction: column; }
 .week-corner { height: var(--head); }

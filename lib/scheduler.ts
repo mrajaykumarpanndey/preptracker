@@ -2,13 +2,13 @@ import { createEvent, deleteEvent } from "./calendar";
 import { config } from "./config";
 import { REVIEWABLE, STATUS } from "./constants";
 import { oauthConnected } from "./google";
-import { esc, heading, list, p, progressBar, renderEmail, schedule } from "./emailTemplate";
+import { esc, heading, list, p, progressBar, renderEmail, schedule, type ScheduleRow } from "./emailTemplate";
 import { getGuide } from "./guide";
 import { renderGuidePdf } from "./guidePdf";
 import { buildInvite, sendMail } from "./mail";
 import { listRows, updateRows, type Row, type RowUpdate } from "./store";
-import { formatLocal, localDay, localHour } from "./time";
-import { clock, currentStudyDay, dueDate, quizStart, planDays, type Kind } from "./timetable";
+import { dayLabel, formatLocal, friendly, localDay, localHour, timeRange } from "./time";
+import { currentStudyDay, dueDate, quizStart, planDays, type Kind } from "./timetable";
 
 export { dueDate };
 
@@ -39,7 +39,7 @@ export async function sendInvite(row: Row, start: Date, dueKey: string): Promise
     eventId = await createEvent(event);
   }
 
-  const when = formatLocal(start);
+  const when = friendly(start);
   const guideUrl = `${config.appUrl}/guide/${row.row}`;
   // The study guide goes along as a PDF; if it can't be written right now the invite still goes out.
   let guidePdf: Buffer | undefined;
@@ -49,7 +49,7 @@ export async function sendInvite(row: Row, start: Date, dueKey: string): Promise
     console.error(`Study guide for "${row.topic}" failed`, error);
   }
   await sendMail({
-    subject: `Quiz: ${row.topic} at ${when.slice(11)} on ${when.slice(0, 10)}`,
+    subject: `Quiz: ${row.topic} - ${when.replace(" · ", " at ")}`,
     html: renderEmail({
       preheader: `Your ${config.quizMinutes}-minute quiz on ${row.topic} is booked for ${when}.`,
       title: `Your quiz on ${row.topic}`,
@@ -86,23 +86,27 @@ const SESSION: Record<Kind, { label: string; color: string }> = {
   quiz: { label: "Quiz", color: "#c4511f" },
 };
 
-/** Today's sessions - the same plan the dashboard board shows. */
+/** Today's sessions - the same plan the dashboard board shows. Late-night sessions get their own day heading. */
 function timetableHtml(rows: Row[], today: string): string {
   const [plan] = planDays(rows, today, 1);
   if (plan.blocks.length === 0) return "";
+  const sorted = [...plan.blocks].sort((a, b) => a.start - b.start);
+  const firstAfterMidnight = sorted.findIndex((b) => b.start >= 24);
+  const tomorrow = new Date(Date.parse(`${today}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
   const rowsHtml = schedule(
-    [...plan.blocks]
-      .sort((a, b) => a.start - b.start)
-      .map((b) => ({
-        time: `${clock(b.start)}-${clock(b.end)}`,
+    sorted.flatMap((b, i): ScheduleRow[] => [
+      ...(i === firstAfterMidnight ? [{ divider: `After midnight · ${dayLabel(tomorrow, true)}` }] : []),
+      {
+        time: timeRange(b.start, b.end),
         color: SESSION[b.kind].color,
         title: b.kind === "quiz" || !b.note ? b.topic : `${b.note}: ${b.topic}`,
         subtitle: [SESSION[b.kind].label, b.category].filter(Boolean).join(" · "),
         href: `${config.appUrl}/${b.kind === "quiz" ? "quiz" : "guide"}/${b.row}`,
-      })),
+      },
+    ]),
   );
   const more = plan.more > 0 ? p(`<span style="color:#8a8f98">+${plan.more} more topics due today - see the tracker.</span>`) : "";
-  return heading("Today's timetable") + rowsHtml + more;
+  return heading(`Today's timetable · ${dayLabel(today, true)}`) + rowsHtml + more;
 }
 
 async function sendDigest(items: DigestItem[], rows: Row[], now: Date): Promise<void> {
@@ -113,7 +117,7 @@ async function sendDigest(items: DigestItem[], rows: Row[], now: Date): Promise<
       : `set it to "${STATUS.IN_PROGRESS}" when you start`;
     const category = row.category ? ` <span style="color:#8a8f98">(${esc(row.category)})</span>` : "";
     return `<b>${esc(row.topic)}</b>${category}<br><span style="font-size:14px">${overdue ? '<b style="color:#c53030">Overdue</b> since' : "Due"} ${esc(
-      formatLocal(due),
+      friendly(due),
     )}${row.score ? ` · last score ${esc(row.score)}/10` : ""} · ${action}</span>`;
   };
   const overdue = items.filter((i) => i.overdue).length;

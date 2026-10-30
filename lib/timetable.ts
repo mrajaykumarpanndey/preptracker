@@ -11,6 +11,7 @@ import { formatLocal, localDay, parseLocal } from "./time";
 export const FIRST_HOUR = config.wakeHour;
 export const LAST_HOUR = config.sleepStartHour + 24;
 const MAX_STUDY_PER_DAY = 12;
+const MIN_SESSION = 0.5; // hours
 const QUIZ_LENGTH = 0.5;
 
 type Window = { start: number; end: number };
@@ -132,6 +133,7 @@ export function planDays(rows: Row[], today: string, count: number): PlanDay[] {
     const add = (row: Row, start: number, end: number, note: string) =>
       blocks.push({ row: row.row, topic: row.topic, category: row.category, kind: kindOf(row), start, end, note });
 
+    let placed = shown.length;
     if (shown.length === 1 && windows.length === 2) {
       // One topic: learn it in the first session, practise it in the second.
       add(shown[0], windows[0].start, windows[0].end, "Learn");
@@ -142,13 +144,17 @@ export function planDays(rows: Row[], today: string, count: number): PlanDay[] {
       let next = 0;
       windows.forEach((w, wi) => {
         const remaining = shown.length - next;
-        const count = wi === windows.length - 1 ? remaining : Math.min(remaining, Math.round((shown.length * (w.end - w.start)) / total));
-        const length = (w.end - w.start) / Math.max(count, 1);
+        const share = wi === windows.length - 1 ? remaining : Math.round((shown.length * (w.end - w.start)) / total);
+        // At least half an hour each; what doesn't fit is shown as "+N more" rather than squeezed in.
+        const count = Math.min(remaining, share, Math.floor((w.end - w.start) / MIN_SESSION));
+        // Whole quarter-hours, so sessions read like 8:00 - 8:30 rather than 8:36 - 9:06.
+        const length = Math.max(MIN_SESSION, Math.floor(((w.end - w.start) / Math.max(count, 1)) * 4) / 4);
         for (let k = 0; k < count; k++, next++) {
           const start = w.start + length * k;
-          add(shown[next], start, start + length - (count > 1 ? 0.1 : 0), "Study");
+          add(shown[next], start, start + length, "Study");
         }
       });
+      placed = next;
     }
 
     // Half-hour quizzes in the evening, at the same times the invites use.
@@ -162,6 +168,6 @@ export function planDays(rows: Row[], today: string, count: number): PlanDay[] {
       blocks.push({ row: row.row, topic: row.topic, category: row.category, kind: "quiz", start, end: start + QUIZ_LENGTH });
     });
 
-    return { day, isToday: day === today, blocks, more: items.length - shown.length };
+    return { day, isToday: day === today, blocks, more: items.length - placed };
   });
 }

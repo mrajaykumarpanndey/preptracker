@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { focusStats, minutesLabel } from "@/lib/focus";
+import { friendly } from "@/lib/time";
 import { hasData, listHistory, listRows, listStudy } from "@/lib/store";
 import FocusSection from "../insights/FocusSection";
 
 export const dynamic = "force-dynamic";
 
-const when = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
 export default async function FocusPage() {
   if (!hasData()) {
@@ -80,7 +80,7 @@ export default async function FocusPage() {
                   {focus.events.slice(0, 40).map((e, i) => (
                     <tr key={i}>
                       <td style={{ whiteSpace: "nowrap" }}>
-                        {when.format(new Date(`${e.when.slice(0, 10)}T12:00:00Z`))} {e.when.slice(11, 16)}
+                        {friendly(e.when)}
                       </td>
                       <td>{e.topic}</td>
                       <td>{e.kind === "reading" ? "Reading" : "Quiz"}</td>

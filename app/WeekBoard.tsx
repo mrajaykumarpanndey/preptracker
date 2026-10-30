@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { clock, currentStudyDay, daySchedule, FIRST_HOUR, LAST_HOUR, planDays, type Kind } from "@/lib/timetable";
+import { timeLabel, timeRange } from "@/lib/time";
+import { currentStudyDay, daySchedule, FIRST_HOUR, LAST_HOUR, planDays, type Kind } from "@/lib/timetable";
 import type { Row } from "@/lib/store";
 
 // A week planner: study sessions and quizzes for the next 7 days. Collapsed by default;
@@ -70,7 +71,7 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
               <div className="week-hours-track">
                 {hours.map((h) => (
                   <span key={h} style={{ top: pct(h) }}>
-                    {clock(h)}
+                    {timeLabel(h)}
                   </span>
                 ))}
               </div>
@@ -95,24 +96,24 @@ export default function WeekBoard({ rows }: { rows: Row[] }) {
                       >
                         Office
                         <span>
-                          {clock(office.start)}-{clock(office.end)}
+                          {timeRange(office.start, office.end)}
                         </span>
                       </div>
                     ) : null;
                   })()}
                   {d.isToday && nowHour >= FIRST_HOUR && nowHour <= LAST_HOUR && (
-                    <div className="week-now" style={{ top: pct(nowHour) }} aria-label={`Now, ${clock(nowHour)}`} />
+                    <div className="week-now" style={{ top: pct(nowHour) }} aria-label={`Now, ${timeLabel(nowHour)}`} />
                   )}
                   {d.blocks.map((b, i) => (
                     <Link
                       key={`${b.kind}-${b.row}-${i}`}
                       href={b.kind === "quiz" ? `/quiz/${b.row}` : `/guide/${b.row}`}
                       className={`tile ${b.kind} ${b.end - b.start < 1 ? "short" : b.end - b.start < 1.6 ? "mid" : ""}`}
-                      style={{ top: pct(b.start), height: `calc(${pct(b.end)} - ${pct(b.start)})` }}
-                      title={`${LABEL[b.kind]}: ${b.topic}${b.category ? ` (${b.category})` : ""}, ${clock(b.start)}-${clock(b.end)}`}
+                      style={{ top: pct(b.start), height: `calc(${pct(b.end)} - ${pct(b.start)} - 3px)` }}
+                      title={`${LABEL[b.kind]}: ${b.topic}${b.category ? ` (${b.category})` : ""}, ${timeRange(b.start, b.end)}`}
                     >
                       <span className="tile-time">
-                        {clock(b.start)}-{clock(b.end)}
+                        {timeRange(b.start, b.end)}
                       </span>
                       <span className="tile-title">
                         <span className="tile-note">{b.kind === "quiz" ? "Quiz" : b.note}</span> {b.topic}

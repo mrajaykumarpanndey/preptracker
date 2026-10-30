@@ -8,7 +8,7 @@ import { excelPath } from "@/lib/excel";
 import { oauthConfigured, oauthConnected } from "@/lib/google";
 import { dueDate } from "@/lib/scheduler";
 import { attemptsByTopic, dataSource, hasData, listHistory, listRows, type Attempts, type Row } from "@/lib/store";
-import { formatLocal } from "@/lib/time";
+import { dayLabel, formatLocal, timeLabel } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,6 @@ const VIEWS = {
 } as const;
 type View = keyof typeof VIEWS;
 
-const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
 function DueCell({ due, done, now }: { due: Date | null; done: boolean; now: number }) {
   if (!due) return <span className="muted">-</span>;
@@ -37,7 +36,7 @@ function DueCell({ due, done, now }: { due: Date | null; done: boolean; now: num
   return (
     <div className="due">
       <div className={late ? "overdue" : undefined}>
-        {DATE_FORMAT.format(new Date(`${day}T12:00:00Z`))} &middot; {time}
+        {dayLabel(day)} &middot; {timeLabel(Number(time.slice(0, 2)) + Number(time.slice(3, 5)) / 60)}
       </div>
       {relative && <div className={`small ${late ? "overdue" : "muted"}`}>{relative}</div>}
     </div>

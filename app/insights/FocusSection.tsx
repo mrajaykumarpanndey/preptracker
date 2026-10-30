@@ -1,5 +1,6 @@
 import type { focusStats } from "@/lib/focus";
 import { minutesLabel } from "@/lib/focus";
+import { timeRange } from "@/lib/time";
 import { ChartCard, DailyFocus, Empty, FocusByHour, Legend } from "./charts";
 
 /** Focus tiles plus the per-day and by-hour charts; used on the Progress and Focus pages. */
@@ -69,7 +70,7 @@ export default function FocusSection({ focus }: { focus: ReturnType<typeof focus
               </thead>
               <tbody>
                 {focus.byHour.map((h) => (
-                  <tr key={h.hour}><td>{String(h.hour % 24).padStart(2, "0")}:00</td><td>{Math.round(h.minutes)}</td></tr>
+                  <tr key={h.hour}><td>{timeRange(h.hour, h.hour + 1)}</td><td>{Math.round(h.minutes)}</td></tr>
                 ))}
               </tbody>
             </table>
